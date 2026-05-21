@@ -29,12 +29,12 @@ function sanitize(input: string): string {
   return input.replace(/<[^>]*>/g, "");
 }
 
-/** Map reaction emoji to its score value. */
+/** Map reaction key to its score value. */
 const REACTION_SCORES: Record<string, number> = {
-  "\u{1F525}": 3,   // 🔥
-  "\u2764\uFE0F": 2, // ❤️
-  "\u{1F610}": 0,   // 😐
-  "\u{1F44E}": -1,  // 👎
+  fire: 3,
+  heart: 2,
+  meh: 0,
+  thumbsdown: -1,
 };
 
 const VALID_REACTIONS = Object.keys(REACTION_SCORES);

@@ -140,7 +140,7 @@ export default function PartyRoom() {
     });
 
     socket.on('party-ended', (payload: any) => {
-      setPartyEnded(payload.winner, payload.stats);
+      setPartyEnded(payload.winner, payload.songResults ?? [], payload.stats);
       navigate(`/party/${code}/results`);
     });
 

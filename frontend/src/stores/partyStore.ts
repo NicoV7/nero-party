@@ -65,6 +65,7 @@ interface PartyStore {
 
   // Winner state
   winner: SongData | null;
+  songResults: (SongData & { totalScore: number; reactionBreakdown: Record<string, number> })[];
   stats: {
     totalSongs: number;
     totalParticipants: number;
@@ -81,7 +82,7 @@ interface PartyStore {
   addChatMessage: (msg: ChatMessageData) => void;
   addParticipant: (p: ParticipantData) => void;
   removeParticipant: (id: string) => void;
-  setPartyEnded: (winner: SongData | null, stats: any) => void;
+  setPartyEnded: (winner: SongData | null, songResults: any[], stats: any) => void;
   setPendingReaction: (song: { songId: string; title: string; artist: string }) => void;
   clearPendingReaction: () => void;
   setConnected: (connected: boolean) => void;
@@ -102,6 +103,7 @@ const initialState = {
   playbackOffset: null,
   pendingReaction: null,
   winner: null,
+  songResults: [],
   stats: null,
 };
 
@@ -163,9 +165,10 @@ export const usePartyStore = create<PartyStore>((set) => ({
       participants: state.participants.filter((p) => p.id !== id),
     })),
 
-  setPartyEnded: (winner, stats) =>
+  setPartyEnded: (winner, songResults, stats) =>
     set((state) => ({
       winner,
+      songResults,
       stats,
       party: state.party ? { ...state.party, status: 'ended' } : null,
     })),

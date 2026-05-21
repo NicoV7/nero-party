@@ -31,7 +31,7 @@ const QUICK_REACTIONS = [
   { key: 'fire', icon: FireIcon, label: 'Fire', reaction: 'fire' },
   { key: 'heart', icon: HeartIcon, label: 'Love', reaction: 'heart' },
   { key: 'sleep', icon: SleepIcon, label: 'Meh', reaction: 'meh' },
-  { key: 'sparkle', icon: SparkleIcon, label: 'Hype', reaction: 'fire' },
+  { key: 'thumbsdown', icon: SparkleIcon, label: 'Nah', reaction: 'thumbsdown' },
 ] as const;
 
 export default function ChatFeed() {
