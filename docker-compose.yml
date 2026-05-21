@@ -1,0 +1,27 @@
+services:
+  nero-party:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - CORS_ORIGIN=*
+    volumes:
+      - ./backend/prisma/dev.db:/app/backend/prisma/dev.db
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command:
+      - "start"
+      - "--all"
+      - "--config"
+      - "/etc/ngrok.yml"
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    ports:
+      - "4040:4040"
+    depends_on:
+      - nero-party

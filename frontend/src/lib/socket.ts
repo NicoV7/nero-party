@@ -1,7 +1,21 @@
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:3000";
+import { API_URL } from "./api";
 
-export const socket = io(SOCKET_URL, {
+const SOCKET_URL = API_URL;
+
+export const socket: Socket = io(SOCKET_URL, {
   autoConnect: false,
 });
+
+export function connectSocket() {
+  if (!socket.connected) {
+    socket.connect();
+  }
+}
+
+export function disconnectSocket() {
+  if (socket.connected) {
+    socket.disconnect();
+  }
+}

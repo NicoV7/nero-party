@@ -7,4 +7,78 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// Design your schema here
+model Party {
+  id                 String        @id @default(cuid())
+  name               String
+  code               String        @unique
+  hostToken          String
+  hostName           String
+  maxSongsPerPerson  Int           @default(5)
+  maxDurationMinutes Int           @default(60)
+  status             String        @default("waiting")
+  createdAt          DateTime      @default(now())
+
+  participants       Participant[]
+  songs              Song[]
+  chatMessages       ChatMessage[]
+}
+
+model Participant {
+  id           String        @id @default(cuid())
+  partyId      String
+  name         String
+  avatarColor  String
+  clientToken  String
+  isConnected  Boolean       @default(true)
+  joinedAt     DateTime      @default(now())
+
+  party        Party         @relation(fields: [partyId], references: [id])
+  songs        Song[]
+  votes        Vote[]
+  chatMessages ChatMessage[]
+}
+
+model Song {
+  id             String    @id @default(cuid())
+  partyId        String
+  youtubeVideoId String
+  title          String
+  artist         String
+  thumbnailUrl   String
+  addedById      String
+  addedByAI      Boolean   @default(false)
+  aiPrompt       String?
+  position       Int
+  playedAt       DateTime?
+  status         String    @default("queued")
+  createdAt      DateTime  @default(now())
+
+  party          Party       @relation(fields: [partyId], references: [id])
+  addedBy        Participant @relation(fields: [addedById], references: [id])
+  votes          Vote[]
+}
+
+model Vote {
+  id            String      @id @default(cuid())
+  songId        String
+  participantId String
+  reaction      String
+  createdAt     DateTime    @default(now())
+
+  song          Song        @relation(fields: [songId], references: [id])
+  participant   Participant @relation(fields: [participantId], references: [id])
+
+  @@unique([songId, participantId])
+}
+
+model ChatMessage {
+  id            String       @id @default(cuid())
+  partyId       String
+  participantId String?
+  content       String
+  type          String       @default("chat")
+  createdAt     DateTime     @default(now())
+
+  party         Party        @relation(fields: [partyId], references: [id])
+  participant   Participant? @relation(fields: [participantId], references: [id])
+}
