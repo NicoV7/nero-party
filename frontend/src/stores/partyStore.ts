@@ -75,6 +75,7 @@ interface PartyStore {
   // Actions
   setPartyState: (state: PartyStatePayload) => void;
   addSong: (song: SongData) => void;
+  setSongs: (songs: SongData[]) => void;
   updateVote: (songId: string, netVotes: number) => void;
   setCurrentSong: (song: SongData | null) => void;
   addChatMessage: (msg: ChatMessageData) => void;
@@ -125,6 +126,9 @@ export const usePartyStore = create<PartyStore>((set) => ({
       songs: sortSongs([...state.songs, song]),
     })),
 
+  setSongs: (songs) =>
+    set({ songs: sortSongs(songs) }),
+
   updateVote: (songId, netVotes) =>
     set((state) => ({
       songs: sortSongs(
@@ -135,13 +139,13 @@ export const usePartyStore = create<PartyStore>((set) => ({
   setCurrentSong: (song) =>
     set((state) => ({
       currentSong: song,
-      songs: song
-        ? sortSongs(
-            state.songs.map((s) =>
-              s.id === song.id ? { ...s, status: 'playing' } : s
-            )
-          )
-        : state.songs,
+      songs: sortSongs(
+        state.songs.map((s) => {
+          if (song && s.id === song.id) return { ...s, status: 'playing' };
+          if (s.status === 'playing') return { ...s, status: 'played' };
+          return s;
+        })
+      ),
     })),
 
   addChatMessage: (msg) =>

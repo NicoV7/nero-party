@@ -4,11 +4,36 @@ import { usePartyStore } from '../stores/partyStore';
 
 const DISMISS_TIMEOUT = 10_000; // 10 seconds
 
+const FireIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
+  </svg>
+);
+
+const HeartIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+  </svg>
+);
+
+const MehIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0012.016 15a4.486 4.486 0 00-3.198 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+  </svg>
+);
+
+const ThumbsDownIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M7.498 15.25H4.372c-1.026 0-1.945-.694-2.054-1.715A12.137 12.137 0 012.25 12c0-2.848.992-5.464 2.649-7.521C5.293 3.987 5.985 3.75 6.704 3.75h2.544c.406 0 .799.156 1.089.448l.442.428a3.001 3.001 0 002.122.874h2.6a3 3 0 002.122-.874l.442-.428c.29-.292.683-.448 1.089-.448h.958c.719 0 1.411.237 1.805.729A11.955 11.955 0 0121.75 12c0 .437-.024.868-.068 1.293-.109 1.021-1.028 1.715-2.054 1.715h-1.126a.75.75 0 00-.707.497l-.96 2.7a2.25 2.25 0 01-2.124 1.545h-.002a2.25 2.25 0 01-2.21-1.824l-.504-2.74A.75.75 0 0011.252 15H7.498z" />
+  </svg>
+);
+
 const reactions = [
-  { emoji: '\uD83D\uDD25', label: 'Fire!' },
-  { emoji: '\u2764\uFE0F', label: 'Loved it' },
-  { emoji: '\uD83D\uDE10', label: 'Meh' },
-  { emoji: '\uD83D\uDC4E', label: 'Not for me' },
+  { key: 'fire', icon: FireIcon, label: 'Fire!' },
+  { key: 'heart', icon: HeartIcon, label: 'Loved it' },
+  { key: 'meh', icon: MehIcon, label: 'Meh' },
+  { key: 'thumbsdown', icon: ThumbsDownIcon, label: 'Not for me' },
 ] as const;
 
 export default function SongReactionToast() {
@@ -62,11 +87,11 @@ export default function SongReactionToast() {
     }, 300);
   };
 
-  const handleReaction = (emoji: string) => {
+  const handleReaction = (key: string) => {
     if (!pendingReaction) return;
     socket.emit('react-to-song', {
       songId: pendingReaction.songId,
-      reaction: emoji,
+      reaction: key,
     });
     dismiss();
   };
@@ -75,37 +100,37 @@ export default function SongReactionToast() {
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100%-2rem)] transition-all duration-300 ease-out ${
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100%-2rem)] transition-[transform,opacity] duration-300 ease-out ${
         visible
           ? 'translate-y-0 opacity-100'
           : 'translate-y-8 opacity-0'
       }`}
     >
-      <div className="bg-[#1e1e1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="bg-nero-surface border border-nero-border rounded-2xl shadow-2xl overflow-hidden">
         {/* Content */}
         <div className="px-5 pt-4 pb-3 text-center">
-          <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
+          <p className="text-xs text-nero-muted uppercase tracking-wider font-medium mb-2">
             How was that?
           </p>
-          <p className="text-white font-semibold truncate">
+          <p className="text-nero-text font-semibold truncate">
             {pendingReaction.title}
           </p>
-          <p className="text-gray-400 text-sm truncate mb-4">
+          <p className="text-nero-muted text-sm truncate mb-4">
             {pendingReaction.artist}
           </p>
 
           {/* Reaction buttons */}
           <div className="flex items-center justify-center gap-3">
-            {reactions.map(({ emoji, label }) => (
+            {reactions.map(({ key, icon: Icon, label }) => (
               <button
-                key={label}
-                onClick={() => handleReaction(emoji)}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors group"
+                key={key}
+                onClick={() => handleReaction(key)}
+                className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-nero-surface-hover transition-colors group"
               >
-                <span className="text-2xl group-hover:scale-110 transition-transform">
-                  {emoji}
+                <span className="text-nero-muted group-hover:text-nero-accent group-hover:scale-110 transition-all">
+                  <Icon />
                 </span>
-                <span className="text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors">
+                <span className="text-[10px] text-nero-dim group-hover:text-nero-text transition-colors">
                   {label}
                 </span>
               </button>
@@ -114,9 +139,9 @@ export default function SongReactionToast() {
         </div>
 
         {/* Progress bar */}
-        <div className="h-1 bg-white/5">
+        <div className="h-1 bg-nero-surface">
           <div
-            className="h-full bg-purple-500 transition-none"
+            className="h-full bg-nero-accent transition-none"
             style={{ width: `${progress}%` }}
           />
         </div>

@@ -98,10 +98,10 @@ export default function JoinParty() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+      <div className="min-h-screen bg-nero-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-10 h-10 border-4 border-[#333] border-t-[#7c3aed] rounded-full animate-spin mb-4" />
-          <p className="text-gray-400 text-lg">Finding the party...</p>
+          <div className="inline-block w-10 h-10 border-4 border-nero-border border-t-nero-accent rounded-full animate-spin mb-4" />
+          <p className="text-nero-muted text-lg">Finding the party...</p>
         </div>
       </div>
     );
@@ -110,18 +110,18 @@ export default function JoinParty() {
   // Error state (no party info loaded)
   if (error && !partyInfo) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-[#1a1a1a] border border-[#333] rounded-xl p-8 text-center">
+      <div className="min-h-screen bg-nero-bg flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-nero-surface border border-nero-border rounded-xl p-8 text-center">
           <div className="text-5xl mb-4">
             {error.includes("ended") ? "\u23F9" : "\u26A0\uFE0F"}
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">
+          <h2 className="text-xl font-bold text-nero-text mb-2">
             {error.includes("ended") ? "Party Ended" : "Oops"}
           </h2>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <p className="text-nero-muted mb-6">{error}</p>
           <button
             onClick={() => navigate("/")}
-            className="px-6 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold transition-colors cursor-pointer"
+            className="px-6 py-2.5 rounded-xl bg-nero-accent hover:bg-nero-accent-hover text-nero-bg font-semibold transition-colors cursor-pointer"
           >
             Back to Home
           </button>
@@ -132,24 +132,24 @@ export default function JoinParty() {
 
   // Join form
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1a1a1a] border border-[#333] rounded-xl p-8">
+    <div className="min-h-screen bg-nero-bg flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-nero-surface border border-nero-border rounded-xl p-8">
         {/* Party info */}
         <div className="text-center mb-8">
-          <p className="text-sm font-medium text-[#7c3aed] uppercase tracking-wider mb-1">
+          <p className="text-sm font-medium text-nero-accent uppercase tracking-wider mb-1">
             Joining Party
           </p>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-nero-text mb-2">
             {partyInfo?.name}
           </h1>
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+          <div className="flex items-center justify-center gap-4 text-sm text-nero-muted">
             <span>
               Hosted by{" "}
-              <span className="text-gray-200 font-medium">
+              <span className="text-nero-text font-medium">
                 {partyInfo?.hostName}
               </span>
             </span>
-            <span className="text-[#333]">|</span>
+            <span className="text-nero-border">|</span>
             <span>
               {partyInfo?.participantCount}{" "}
               {partyInfo?.participantCount === 1 ? "person" : "people"} here
@@ -160,7 +160,7 @@ export default function JoinParty() {
         {/* Name input */}
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-nero-muted mb-1">
               Your Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -169,7 +169,7 @@ export default function JoinParty() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
               maxLength={50}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white placeholder-gray-600 focus:outline-none focus:border-[#7c3aed] transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text placeholder-nero-dim focus:outline-none focus:border-nero-accent transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleJoin();
               }}
@@ -184,7 +184,7 @@ export default function JoinParty() {
           <button
             onClick={handleJoin}
             disabled={joining}
-            className="w-full py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-lg transition-colors cursor-pointer"
+            className="w-full py-3 rounded-xl bg-nero-accent hover:bg-nero-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-nero-bg font-semibold text-lg transition-colors cursor-pointer"
           >
             {joining ? "Joining..." : "Join & Listen"}
           </button>
@@ -194,7 +194,7 @@ export default function JoinParty() {
         <div className="text-center mt-6">
           <button
             onClick={() => navigate("/")}
-            className="text-gray-500 hover:text-gray-300 text-sm transition-colors cursor-pointer"
+            className="text-nero-dim hover:text-nero-text text-sm transition-colors cursor-pointer"
           >
             &larr; Back to home
           </button>

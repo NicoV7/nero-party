@@ -20,6 +20,7 @@ export default function PartyRoom() {
   const party = usePartyStore((s) => s.party);
   const setPartyState = usePartyStore((s) => s.setPartyState);
   const addSong = usePartyStore((s) => s.addSong);
+  const setSongs = usePartyStore((s) => s.setSongs);
   const setCurrentSong = usePartyStore((s) => s.setCurrentSong);
   const addChatMessage = usePartyStore((s) => s.addChatMessage);
   const addParticipant = usePartyStore((s) => s.addParticipant);
@@ -124,6 +125,10 @@ export default function PartyRoom() {
       });
     });
 
+    socket.on('queue-updated', (songs: any[]) => {
+      setSongs(songs);
+    });
+
     socket.on('participant-joined', (data: any) => {
       const participant = data.participant ?? data;
       addParticipant(participant);
@@ -155,6 +160,7 @@ export default function PartyRoom() {
       socket.off('reaction-saved');
       socket.off('chat-message');
       socket.off('reaction');
+      socket.off('queue-updated');
       socket.off('participant-joined');
       socket.off('participant-left');
       socket.off('party-ended');
@@ -168,6 +174,7 @@ export default function PartyRoom() {
     navigate,
     setPartyState,
     addSong,
+    setSongs,
     setCurrentSong,
     addChatMessage,
     addParticipant,
@@ -180,28 +187,28 @@ export default function PartyRoom() {
 
   if (!party) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+      <div className="min-h-screen bg-nero-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm">Joining the party...</p>
+          <div className="w-10 h-10 border-4 border-nero-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-nero-muted text-sm">Joining the party...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-[#0f0f0f] text-white flex flex-col">
+    <div className="h-screen bg-nero-bg text-nero-text flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-white/10 shrink-0">
+      <header className="flex items-center justify-between px-6 py-3 border-b border-nero-border shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold tracking-tight">
-            <span className="text-purple-400">nero</span>party
+          <h1 className="text-xl font-bold tracking-tighter">
+            <span className="text-nero-accent">nero</span>party
           </h1>
-          <span className="text-gray-500">|</span>
-          <span className="text-gray-300 font-medium">{party.name}</span>
+          <span className="text-nero-dim">|</span>
+          <span className="text-nero-text font-medium">{party.name}</span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-400">
-          <span className="px-2 py-1 rounded bg-[#1a1a1a] text-xs uppercase tracking-wider">
+        <div className="flex items-center gap-3 text-sm text-nero-muted">
+          <span className="px-2 py-1 rounded bg-nero-surface text-xs uppercase tracking-wider">
             {party.status}
           </span>
           {isHost && (
@@ -220,23 +227,23 @@ export default function PartyRoom() {
       </header>
 
       {/* Main content area */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-0 overflow-hidden">
         {/* Left panel — scrollable */}
-        <div className="flex flex-col gap-4 p-4 overflow-y-auto lg:h-[calc(100vh-57px)]">
+        <div className="flex flex-col gap-4 p-4 overflow-y-auto min-h-0">
           <Player />
-          <SongSearch />
           <Queue />
+          <SongSearch />
         </div>
 
         {/* Right panel */}
-        <div className="hidden lg:flex flex-col border-l border-white/10 lg:h-[calc(100vh-57px)] overflow-hidden">
-          <div className="p-4 border-b border-white/5 shrink-0">
+        <div className="hidden lg:flex flex-col border-l border-nero-border min-h-0 overflow-hidden">
+          <div className="p-4 border-b border-nero-border shrink-0">
             <Participants />
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             <ChatFeed />
           </div>
-          <div className="p-4 border-t border-white/5 shrink-0">
+          <div className="p-4 border-t border-nero-border shrink-0">
             <ShareLink />
           </div>
         </div>
@@ -247,7 +254,7 @@ export default function PartyRoom() {
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100%-2rem)]">
           <div className="bg-red-900/90 border border-red-700 text-red-200 px-4 py-3 rounded-xl shadow-2xl text-sm flex items-center justify-between gap-3">
             <span>{errorToast}</span>
-            <button onClick={() => setErrorToast(null)} className="text-red-400 hover:text-white shrink-0">&times;</button>
+            <button onClick={() => setErrorToast(null)} className="text-red-400 hover:text-nero-text shrink-0">&times;</button>
           </div>
         </div>
       )}

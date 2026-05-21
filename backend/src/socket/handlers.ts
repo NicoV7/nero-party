@@ -924,6 +924,112 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     // -----------------------------------------------------------------------
+    // reorder-queue (host only)
+    // -----------------------------------------------------------------------
+    socket.on("reorder-queue", async ({ songIds }: { songIds: string[] }) => {
+      try {
+        const sp = socketParticipants.get(socket.id);
+        if (!sp) {
+          socket.emit("error", { message: "Not in a room" });
+          return;
+        }
+
+        const party = await prisma.party.findUnique({ where: { code: sp.partyCode } });
+        if (!party) return;
+
+        if (sp.clientToken !== party.hostToken) {
+          socket.emit("error", { message: "Only the host can reorder the queue" });
+          return;
+        }
+
+        if (!Array.isArray(songIds) || songIds.length === 0) {
+          socket.emit("error", { message: "Invalid song order" });
+          return;
+        }
+
+        // Update positions for each song in the new order
+        for (let i = 0; i < songIds.length; i++) {
+          await prisma.song.updateMany({
+            where: { id: songIds[i], partyId: party.id, status: "queued" },
+            data: { position: i },
+          });
+        }
+
+        // Fetch updated songs and broadcast
+        const songs = await prisma.song.findMany({
+          where: { partyId: party.id },
+          include: {
+            addedBy: { select: { id: true, name: true, avatarColor: true } },
+          },
+        });
+
+        const songData = songs.map((song) => toSongData(song));
+        io.to(sp.partyCode).emit("queue-updated", songData);
+      } catch (error) {
+        console.error("Error in reorder-queue:", error);
+        socket.emit("error", { message: "Failed to reorder queue" });
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // play-song (host only — skip to specific song)
+    // -----------------------------------------------------------------------
+    socket.on("play-song", async ({ songId }: { songId: string }) => {
+      try {
+        const sp = socketParticipants.get(socket.id);
+        if (!sp) {
+          socket.emit("error", { message: "Not in a room" });
+          return;
+        }
+
+        const party = await prisma.party.findUnique({ where: { code: sp.partyCode } });
+        if (!party) return;
+
+        if (sp.clientToken !== party.hostToken) {
+          socket.emit("error", { message: "Only the host can select songs" });
+          return;
+        }
+
+        const song = await prisma.song.findFirst({
+          where: { id: songId, partyId: party.id, status: "queued" },
+          include: {
+            addedBy: { select: { id: true, name: true, avatarColor: true } },
+          },
+        });
+
+        if (!song) {
+          socket.emit("error", { message: "Song not found in queue" });
+          return;
+        }
+
+        // Mark current song as played
+        const roomState = rooms.get(sp.partyCode);
+        if (roomState?.currentSong) {
+          io.to(sp.partyCode).emit("song-ended", { song: roomState.currentSong });
+          await prisma.song.update({
+            where: { id: roomState.currentSong.id },
+            data: { status: "played", playedAt: new Date() },
+          });
+        }
+
+        // Start the selected song
+        await startPlayback(io, sp.partyCode, toSongData(song));
+
+        // Sync full song list so frontend queue stays consistent
+        const allSongs = await prisma.song.findMany({
+          where: { partyId: party.id },
+          include: {
+            addedBy: { select: { id: true, name: true, avatarColor: true } },
+          },
+        });
+        io.to(sp.partyCode).emit("queue-updated", allSongs.map((s) => toSongData(s)));
+      } catch (error) {
+        console.error("Error in play-song:", error);
+        socket.emit("error", { message: "Failed to play song" });
+      }
+    });
+
+    // -----------------------------------------------------------------------
     // end-party (host only)
     // -----------------------------------------------------------------------
     socket.on("end-party", async () => {

@@ -81,27 +81,28 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
+    <div className="min-h-[100dvh] bg-nero-bg flex items-center px-8 sm:px-16 lg:px-24">
+      <div className="max-w-2xl w-full">
       {/* Hero */}
-      <div className="text-center mb-12">
-        <h1 className="text-6xl sm:text-7xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-4">
+      <div className="text-left mb-12">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter leading-none text-nero-accent mb-4">
           Nero Party
         </h1>
-        <p className="text-lg sm:text-xl text-gray-400 max-w-md mx-auto">
-          Listen together. Vibe together. Crown the winner.
+        <p className="text-lg text-nero-muted max-w-[45ch] leading-relaxed mt-4">
+          Pick songs with friends. Vote on the best track. One winner takes the crown.
         </p>
       </div>
 
       {/* Action Buttons */}
       {!showCreate && !showJoin && (
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-row gap-4">
           <button
             onClick={() => {
               setShowCreate(true);
               setShowJoin(false);
               setError(null);
             }}
-            className="px-8 py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold text-lg transition-colors cursor-pointer"
+            className="px-8 py-3 rounded-xl bg-nero-accent hover:bg-nero-accent-hover text-nero-bg font-semibold text-lg transition-colors cursor-pointer"
           >
             Create a Party
           </button>
@@ -111,7 +112,7 @@ export default function Landing() {
               setShowCreate(false);
               setError(null);
             }}
-            className="px-8 py-3 rounded-xl border-2 border-[#7c3aed] text-[#7c3aed] hover:bg-[#7c3aed]/10 font-semibold text-lg transition-colors cursor-pointer"
+            className="px-8 py-3 rounded-xl border-2 border-nero-accent text-nero-accent hover:bg-nero-accent/10 font-semibold text-lg transition-colors cursor-pointer"
           >
             Join with Code
           </button>
@@ -120,22 +121,22 @@ export default function Landing() {
 
       {/* Create Party Form */}
       {showCreate && (
-        <div className="w-full max-w-md bg-[#1a1a1a] border border-[#333] rounded-xl p-6 space-y-5">
+        <div className="w-full max-w-md bg-nero-surface border border-nero-border rounded-xl p-6 space-y-5">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold text-white">Create a Party</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-nero-text">Create a Party</h2>
             <button
               onClick={() => {
                 setShowCreate(false);
                 setError(null);
               }}
-              className="text-gray-500 hover:text-gray-300 text-2xl leading-none cursor-pointer"
+              className="text-nero-dim hover:text-nero-text text-2xl leading-none cursor-pointer"
             >
               &times;
             </button>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-nero-muted tracking-wide uppercase mb-1.5">
               Party Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -144,14 +145,14 @@ export default function Landing() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, partyName: e.target.value }))
               }
-              placeholder="Friday Night Vibes"
+              placeholder="Saturday night session"
               maxLength={100}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white placeholder-gray-600 focus:outline-none focus:border-[#7c3aed] transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text placeholder-nero-dim focus:outline-none focus:border-nero-accent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-nero-muted tracking-wide uppercase mb-1.5">
               Your Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -160,15 +161,15 @@ export default function Landing() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, hostName: e.target.value }))
               }
-              placeholder="DJ Shadow"
+              placeholder="Your name"
               maxLength={50}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white placeholder-gray-600 focus:outline-none focus:border-[#7c3aed] transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text placeholder-nero-dim focus:outline-none focus:border-nero-accent transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
+              <label className="block text-sm font-medium text-nero-muted tracking-wide uppercase mb-1.5">
                 Max Songs / Person
               </label>
               <select
@@ -179,7 +180,7 @@ export default function Landing() {
                     maxSongsPerPerson: Number(e.target.value),
                   }))
                 }
-                className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white focus:outline-none focus:border-[#7c3aed] transition-colors cursor-pointer"
+                className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text focus:outline-none focus:border-nero-accent transition-colors cursor-pointer"
               >
                 {[3, 5, 10, 15, 20].map((n) => (
                   <option key={n} value={n}>
@@ -190,7 +191,7 @@ export default function Landing() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
+              <label className="block text-sm font-medium text-nero-muted tracking-wide uppercase mb-1.5">
                 Party Duration
               </label>
               <select
@@ -201,7 +202,7 @@ export default function Landing() {
                     maxDurationMinutes: Number(e.target.value),
                   }))
                 }
-                className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white focus:outline-none focus:border-[#7c3aed] transition-colors cursor-pointer"
+                className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text focus:outline-none focus:border-nero-accent transition-colors cursor-pointer"
               >
                 {[15, 30, 45, 60, 90, 120].map((n) => (
                   <option key={n} value={n}>
@@ -219,7 +220,7 @@ export default function Landing() {
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="w-full py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-lg transition-colors cursor-pointer"
+            className="w-full py-3 rounded-xl bg-nero-accent hover:bg-nero-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-nero-bg font-semibold text-lg transition-colors cursor-pointer"
           >
             {creating ? "Creating..." : "Start Party"}
           </button>
@@ -228,22 +229,22 @@ export default function Landing() {
 
       {/* Join with Code */}
       {showJoin && (
-        <div className="w-full max-w-md bg-[#1a1a1a] border border-[#333] rounded-xl p-6 space-y-5">
+        <div className="w-full max-w-md bg-nero-surface border border-nero-border rounded-xl p-6 space-y-5">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold text-white">Join with Code</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-nero-text">Join with Code</h2>
             <button
               onClick={() => {
                 setShowJoin(false);
                 setError(null);
               }}
-              className="text-gray-500 hover:text-gray-300 text-2xl leading-none cursor-pointer"
+              className="text-nero-dim hover:text-nero-text text-2xl leading-none cursor-pointer"
             >
               &times;
             </button>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-nero-muted tracking-wide uppercase mb-1.5">
               Party Code
             </label>
             <input
@@ -252,7 +253,7 @@ export default function Landing() {
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="ABC123"
               maxLength={6}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#111] border border-[#333] text-white placeholder-gray-600 tracking-widest text-center text-xl font-mono focus:outline-none focus:border-[#7c3aed] transition-colors uppercase"
+              className="w-full px-4 py-2.5 rounded-lg bg-nero-surface border border-nero-border text-nero-text placeholder-nero-dim tracking-widest text-center text-xl font-mono focus:outline-none focus:border-nero-accent transition-colors uppercase"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleJoin();
               }}
@@ -265,12 +266,13 @@ export default function Landing() {
 
           <button
             onClick={handleJoin}
-            className="w-full py-3 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold text-lg transition-colors cursor-pointer"
+            className="w-full py-3 rounded-xl bg-nero-accent hover:bg-nero-accent-hover text-nero-bg font-semibold text-lg transition-colors cursor-pointer"
           >
             Join
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ export default function Participants() {
 
   return (
     <div className="w-full">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3">
+      <h3 className="text-sm font-semibold text-nero-muted mb-3">
         In the Room ({participants.length})
       </h3>
 
@@ -26,14 +26,14 @@ export default function Participants() {
               }`}
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                  isHost ? 'ring-2 ring-[#7c3aed] ring-offset-2 ring-offset-[#0f0f0f]' : ''
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-nero-text font-bold text-sm ${
+                  isHost ? 'ring-2 ring-nero-accent ring-offset-2 ring-offset-nero-bg' : ''
                 }`}
                 style={{ backgroundColor: p.avatarColor }}
               >
                 {firstLetter}
               </div>
-              <span className="text-xs text-gray-400 max-w-[60px] truncate">
+              <span className="text-xs text-nero-muted max-w-[60px] truncate">
                 {p.name}
               </span>
             </div>
