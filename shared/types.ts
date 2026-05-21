@@ -37,12 +37,14 @@ export interface SongData {
   title: string;
   artist: string;
   thumbnailUrl: string;
+  addedById: string | null;
   addedByName: string;
   addedByAI: boolean;
   aiPrompt: string | null;
   position: number;
   status: string;
   netVotes: number;
+  totalScore: number;
   userVote: number | null;
 }
 
@@ -77,6 +79,7 @@ export interface PartyStatePayload {
     status: string;
     createdAt: string;
   };
+  participantId: string | null;
   participants: ParticipantData[];
   songs: SongData[];
   chatMessages: ChatMessageData[];
@@ -90,7 +93,7 @@ export interface PartyEndedPayload {
   stats: {
     totalSongs: number;
     totalParticipants: number;
-    totalVotes: number;
+    totalReactions: number;
     aiPicks: number;
   };
 }

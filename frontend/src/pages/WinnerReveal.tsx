@@ -46,7 +46,7 @@ export default function WinnerReveal() {
                 {winner.artist} · Added by {winner.addedByName}
               </p>
               <div className="mt-3 inline-flex items-center gap-1 bg-[#7c3aed]/20 text-[#7c3aed] px-3 py-1 rounded-full text-sm font-semibold">
-                ▲ {winner.netVotes} votes
+                ▲ {winner.totalScore ?? 0} score
               </div>
               {winner.addedByAI && (
                 <p className="text-xs text-[#ec4899] mt-2">
@@ -75,9 +75,9 @@ export default function WinnerReveal() {
           </div>
           <div className="text-center">
             <div className="text-3xl font-extrabold text-[#7c3aed]">
-              {stats.totalVotes}
+              {stats.totalReactions}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Total Votes</div>
+            <div className="text-xs text-gray-500 mt-1">Reactions</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-extrabold text-[#7c3aed]">

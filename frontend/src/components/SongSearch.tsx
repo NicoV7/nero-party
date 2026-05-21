@@ -27,7 +27,7 @@ export default function SongSearch() {
 
   // Count songs added by the current user
   const mySongCount = songs.filter(
-    (s) => s.addedByName && participantId
+    (s: any) => s.addedById === participantId
   ).length;
   const songsRemaining = Math.max(0, maxSongs - mySongCount);
 

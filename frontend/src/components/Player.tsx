@@ -100,8 +100,13 @@ export default function Player() {
           break;
         case 'seek':
           if (typeof data.seconds === 'number') {
-            player.seekTo(data.seconds, true);
+            const currentTime = player.getCurrentTime?.() ?? 0;
+            const targetTime = Math.max(0, currentTime + data.seconds);
+            player.seekTo(targetTime, true);
           }
+          break;
+        case 'restart':
+          player.seekTo(0, true);
           break;
       }
     };

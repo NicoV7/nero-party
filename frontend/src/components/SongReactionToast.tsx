@@ -66,7 +66,7 @@ export default function SongReactionToast() {
     if (!pendingReaction) return;
     socket.emit('react-to-song', {
       songId: pendingReaction.songId,
-      emoji,
+      reaction: emoji,
     });
     dismiss();
   };

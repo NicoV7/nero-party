@@ -68,7 +68,7 @@ interface PartyStore {
   stats: {
     totalSongs: number;
     totalParticipants: number;
-    totalVotes: number;
+    totalReactions: number;
     aiPicks: number;
   } | null;
 
@@ -111,6 +111,7 @@ export const usePartyStore = create<PartyStore>((set) => ({
   setPartyState: (payload) =>
     set({
       party: payload.party,
+      participantId: payload.participantId ?? null,
       participants: payload.participants,
       songs: sortSongs(payload.songs),
       chatMessages: payload.chatMessages,

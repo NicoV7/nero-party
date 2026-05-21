@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket, connectSocket, disconnectSocket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
@@ -14,6 +14,7 @@ export default function PartyRoom() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const listenersAttached = useRef(false);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
 
   const clientToken = usePartyStore((s) => s.clientToken);
   const party = usePartyStore((s) => s.party);
@@ -89,11 +90,12 @@ export default function PartyRoom() {
 
     socket.on('song-ended', (data: any) => {
       // Show reaction toast for the song that just ended
-      if (data.songId && data.title && data.artist) {
+      const song = data.song ?? data;
+      if (song?.id && song?.title && song?.artist) {
         setPendingReaction({
-          songId: data.songId,
-          title: data.title,
-          artist: data.artist,
+          songId: song.id,
+          title: song.title,
+          artist: song.artist,
         });
       }
     });
@@ -138,7 +140,8 @@ export default function PartyRoom() {
     });
 
     socket.on('error', (payload: any) => {
-      alert(payload.message ?? 'Something went wrong');
+      setErrorToast(payload.message ?? 'Something went wrong');
+      setTimeout(() => setErrorToast(null), 5000);
     });
 
     return () => {
@@ -238,6 +241,16 @@ export default function PartyRoom() {
           </div>
         </div>
       </div>
+
+      {/* Error toast */}
+      {errorToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100%-2rem)]">
+          <div className="bg-red-900/90 border border-red-700 text-red-200 px-4 py-3 rounded-xl shadow-2xl text-sm flex items-center justify-between gap-3">
+            <span>{errorToast}</span>
+            <button onClick={() => setErrorToast(null)} className="text-red-400 hover:text-white shrink-0">&times;</button>
+          </div>
+        </div>
+      )}
 
       {/* Song reaction toast overlay */}
       <SongReactionToast />

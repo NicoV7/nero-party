@@ -47,6 +47,7 @@ function toSongData(song: any): any {
     title: song.title,
     artist: song.artist,
     thumbnailUrl: song.thumbnailUrl,
+    addedById: song.addedBy?.id ?? song.addedById ?? null,
     addedByName: song.addedBy?.name ?? "Unknown",
     addedByAI: song.addedByAI ?? false,
     aiPrompt: song.aiPrompt ?? null,
@@ -345,6 +346,7 @@ export function setupSocketHandlers(io: Server): void {
             maxDurationMinutes: party.maxDurationMinutes,
             hostName: party.hostName,
           },
+          participantId: participant.id,
           participants,
           songs: songData,
           chatMessages: chatMessages.map((msg) => ({
@@ -807,7 +809,7 @@ export function setupSocketHandlers(io: Server): void {
           rooms.set(sp.partyCode, roomState);
         }
 
-        io.to(sp.partyCode).emit("playback-control", { action: "seek", seconds: 0 });
+        io.to(sp.partyCode).emit("playback-control", { action: "restart" });
       } catch (error) {
         console.error("Error in restart-song:", error);
         socket.emit("error", { message: "Failed to restart song" });
