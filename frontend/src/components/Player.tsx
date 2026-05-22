@@ -197,6 +197,8 @@ export default function Player() {
     lastVideoId.current = videoId;
     const startSeconds = offset && offset > 0 ? offset / 1000 : 0;
     player.loadVideoById({ videoId, startSeconds });
+    // Ensure autoplay even if Chrome's policy paused it
+    setTimeout(() => player.playVideo?.(), 500);
     if (captionsEnabled) {
       player.loadModule?.('captions');
     }
