@@ -38,6 +38,36 @@ describe("POST /api/parties", () => {
     expect(res.body.hostToken.length).toBeGreaterThan(0);
   });
 
+  it("stores host-only add mode when requested", async () => {
+    const res = await request(app)
+      .post("/api/parties")
+      .send({
+        name: "Host Picks",
+        hostName: "DJ Nick",
+        addMode: "host",
+      });
+
+    expect(res.status).toBe(201);
+
+    const party = await prisma.party.findUnique({
+      where: { code: res.body.code },
+    });
+    expect(party?.addMode).toBe("host");
+  });
+
+  it("rejects invalid add mode", async () => {
+    const res = await request(app)
+      .post("/api/parties")
+      .send({
+        name: "Friday Night Jams",
+        hostName: "DJ Nick",
+        addMode: "moderators",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/addMode/i);
+  });
+
   it("rejects missing name", async () => {
     const res = await request(app)
       .post("/api/parties")

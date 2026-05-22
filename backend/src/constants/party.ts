@@ -26,6 +26,11 @@ export const MIN_PARTY_DURATION_MINUTES = 5;
 export const MAX_PARTY_DURATION_MINUTES = 180;
 export const PARTY_TIMER_MS_PER_MINUTE = 60_000;
 
+export const ADD_MODE_EVERYONE = "everyone";
+export const ADD_MODE_HOST = "host";
+export const ADD_MODES = [ADD_MODE_EVERYONE, ADD_MODE_HOST] as const;
+export type AddMode = (typeof ADD_MODES)[number];
+
 export const SONG_STATUS_ORDER: Record<string, number> = {
   playing: 0,
   queued: 1,

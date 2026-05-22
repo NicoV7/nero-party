@@ -16,6 +16,7 @@ model Party {
   maxSongsPerPerson  Int           @default(5)
   maxUsers           Int           @default(12)
   maxDurationMinutes Int           @default(60)
+  addMode            String        @default("everyone")
   status             String        @default("waiting")
   createdAt          DateTime      @default(now())
 

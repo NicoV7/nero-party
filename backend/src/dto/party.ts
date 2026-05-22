@@ -4,6 +4,7 @@ export interface CreatePartyRequest {
   maxSongsPerPerson?: number;
   maxUsers?: number;
   maxDurationMinutes?: number;
+  addMode?: string;
 }
 
 export interface JoinPartyRequest {

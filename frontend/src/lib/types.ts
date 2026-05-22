@@ -66,6 +66,7 @@ export interface PartyStatePayload {
     maxSongsPerPerson: number;
     maxUsers: number;
     maxDurationMinutes: number;
+    addMode: 'everyone' | 'host';
     status: string;
     createdAt: string;
   };
@@ -148,6 +149,7 @@ export interface CreatePartyRequest {
   maxSongsPerPerson?: number;
   maxUsers?: number;
   maxDurationMinutes?: number;
+  addMode?: 'everyone' | 'host';
 }
 
 export interface CreatePartyResponse {

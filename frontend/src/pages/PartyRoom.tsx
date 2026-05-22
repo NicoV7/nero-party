@@ -204,8 +204,9 @@ export default function PartyRoom() {
       <header className="relative z-30 px-3 pb-2 pt-3 sm:px-6">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 rounded-xl border border-white/75 bg-white/74 px-3 py-2.5 shadow-[0_22px_70px_-58px_rgba(36,31,27,0.58)] shadow-nero-accent/5 backdrop-blur-2xl sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-nero-text text-sm font-black tracking-tight text-white shadow-[0_14px_34px_-26px_rgba(36,31,27,0.75)]">
-              np
+            <div className="flex h-10 shrink-0 items-center justify-center rounded-lg bg-nero-text px-3 text-sm font-black uppercase tracking-[0.18em] text-white shadow-[0_14px_34px_-26px_rgba(36,31,27,0.75)]">
+              <span className="text-nero-accent">nero</span>
+              <span className="ml-1 text-white">party</span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -278,7 +279,7 @@ export default function PartyRoom() {
                 <p className="text-sm text-nero-muted">Search YouTube and send the next pick into the room.</p>
               </div>
               <span className="hidden rounded-md bg-nero-surface-hover px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-nero-secondary sm:inline">
-                Everyone can add
+                {party.addMode === 'host' ? 'Only host can add' : 'Everyone can add'}
               </span>
             </div>
             <SongSearch />
@@ -298,7 +299,7 @@ export default function PartyRoom() {
       {!isHost && (
         <div className="relative mx-auto max-w-[1600px] px-4 pb-4 sm:px-6">
           <div className="rounded-xl border border-white/80 bg-white/72 px-4 py-3 text-sm font-medium text-nero-muted shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
-            The host controls playback. You can add songs, vote, chat, and react.
+            The host controls playback. {party.addMode === 'host' ? 'Only the host can add songs. You can vote, chat, and react.' : 'You can add songs, vote, chat, and react.'}
           </div>
         </div>
       )}

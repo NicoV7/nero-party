@@ -48,6 +48,7 @@ interface PartyStore {
     maxSongsPerPerson: number;
     maxUsers: number;
     maxDurationMinutes: number;
+    addMode: 'everyone' | 'host';
     status: string;
     createdAt: string;
   } | null;

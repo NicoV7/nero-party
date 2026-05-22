@@ -1,100 +1,123 @@
 # Nero Party
 
-A shared listening party app where friends join, queue songs, listen together in real-time, vote, and crown a winning song.
+Nero Party is a shared listening room where friends create a party, add music videos to a live queue, vote with reactions, chat, and crown a winning song when the party ends.
 
-## Quick Start
+## Local Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- A [Google Cloud API key](https://console.cloud.google.com/apis/credentials) with **YouTube Data API v3** enabled
+- npm
+- Optional but recommended: a Google Cloud API key with **YouTube Data API v3** enabled
 
-### Installation
+The app boots without a YouTube key, but YouTube search will return a configuration error until `YOUTUBE_API_KEY` is set.
+
+### One-Command Local Boot
 
 ```bash
-# Install all dependencies
 npm install
+npm run dev:local
+```
 
-# Set up environment variables
+`npm run dev:local` does the local setup work before starting the app:
+
+- Creates `.env` from `.env.example` if missing
+- Creates `frontend/.env` from `frontend/.env.example` if missing
+- Pushes the Prisma schema to the local SQLite database
+- Starts the backend and frontend dev servers
+
+When it is running, open:
+
+- Frontend: `http://localhost:5173`
+- Backend health check: `http://localhost:3000/health`
+
+### Manual Setup
+
+```bash
+npm install
 cp .env.example .env
-# Edit .env and add your API keys (see below)
-
-# Also set up the frontend env
 cp frontend/.env.example frontend/.env
-# Add the same YouTube API key to frontend/.env
-
-# Set up the database
-cd backend && npx prisma db push && cd ..
-
-# Start the development servers
+npm --prefix backend run prisma:push
 npm run dev
 ```
 
-### Environment Variables
-
-**`.env`** (backend):
-```
-PORT=3000
-YOUTUBE_API_KEY=your_google_api_key_here
-```
-
-**`frontend/.env`** (frontend):
-```
-VITE_YOUTUBE_API_KEY=your_google_api_key_here
-```
-
-This will start:
-- Backend on `http://localhost:3000`
-- Frontend on `http://localhost:5173`
-
-### Running Tests
+Edit `.env` and set:
 
 ```bash
-cd backend && npm test
+PORT=3000
+YOUTUBE_API_KEY=your_google_api_key_here
+CORS_ORIGIN=http://localhost:5173
 ```
 
-## How It Works
+`frontend/.env` is only needed when overriding the backend URL:
 
-1. **Create a Party** — Set a name, configure max songs per person and party duration
-2. **Share the Link** — Copy the join link and send it to friends
-3. **Add Songs** — Search YouTube and add tracks to the shared queue
-4. **Listen Together** — Songs play via YouTube for all participants in real-time
-5. **Vote** — Upvote/downvote songs to influence the queue order
-6. **Crown the Winner** — When the party ends, the highest-voted song wins!
+```bash
+VITE_API_URL=http://localhost:3000
+```
+
+## Scripts
+
+```bash
+npm run dev:local        # prepare local env/db, then run both servers
+npm run dev              # run backend and frontend together
+npm run dev:backend      # backend only
+npm run dev:frontend     # frontend only
+npm --prefix backend test
+npm --prefix backend run build
+npm --prefix frontend run build
+node frontend/tests/e2e/room-multiuser-smoke.mjs
+```
+
+The smoke test expects the dev server to be running. It creates two rooms, connects host plus guest agents through Socket.IO, verifies “Everyone can add”, verifies “Only host can add”, and checks leaderboard voting updates.
+
+## Product Flow
+
+1. Create a room with host name, room capacity, songs-per-person limit, duration, and add mode.
+2. Share the room code or link with friends.
+3. Search YouTube and add songs to the queue.
+4. Listen together with realtime playback, queue, chat, participant, and leaderboard updates.
+5. Vote with quick reactions.
+6. End the party and reveal the winner with final leaderboard results.
 
 ## Architecture
 
-```
+```text
 nero-party/
-├── shared/              # Shared TypeScript types
-│   └── types.ts         # Socket.IO event contracts
-├── backend/             # Express + Socket.IO server
-│   ├── prisma/          # Database schema (SQLite)
+├── shared/                    # Shared TypeScript contracts
+├── backend/
+│   ├── prisma/                # SQLite schema
 │   ├── src/
-│   │   ├── dto/         # Transport payload shapes
-│   │   ├── models/      # Prisma client, domain constants, and mappers
-│   │   ├── routing/     # REST API endpoints
-│   │   ├── services/    # Domain services and YouTube integration
-│   │   └── socket/      # Real-time event handlers
-│   └── tests/           # Tests organized by app component
-└── frontend/            # React + Vite client
-    └── src/
-        ├── pages/       # Landing, JoinParty, PartyRoom, WinnerReveal
-        ├── components/  # Player, Queue, SongSearch, ChatFeed, etc.
-        ├── stores/      # Zustand state management
-        └── lib/         # Socket.IO client, types
+│   │   ├── constants/         # Cross-module constants
+│   │   ├── dto/               # Request/payload shapes
+│   │   ├── exceptions/        # HTTP/socket error boundaries
+│   │   ├── models/            # Prisma client and DTO mappers
+│   │   ├── routing/           # REST routes
+│   │   ├── services/          # YouTube, leaderboard, queue, text services
+│   │   └── socket/            # Realtime routing, context, playback, state
+│   └── tests/                 # App, routing, regression, and service tests
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # Player, queue, search, chat, leaderboard
+│   │   ├── constants/         # UI constants
+│   │   ├── lib/               # Socket and client types
+│   │   ├── pages/             # Landing, join, party room, winner reveal
+│   │   └── stores/            # Zustand room state
+│   └── tests/                 # Screenshots and E2E smoke test
+└── docs/                      # Architecture and realtime flow notes
 ```
 
 ## Tech Stack
 
-- **Backend:** Express.js, Prisma, Socket.IO
-- **Frontend:** React, Vite, TailwindCSS, Zustand, React Router
-- **Database:** SQLite (local, zero setup)
-- **Music:** YouTube IFrame API (playback) + YouTube Data API v3 (search)
-- **Tests:** Vitest
+- Backend: Express, Socket.IO, Prisma, SQLite
+- Frontend: React, Vite, TailwindCSS, Zustand, React Router
+- Music: YouTube Data API v3 for search, YouTube IFrame API for playback
+- Tests: Vitest plus a Socket.IO smoke test
 
-## Design Decisions
+## Notes For Developers
 
-- **YouTube over Spotify/Deezer** — Full song playback for free, massive catalog, no user auth required
-- **Split-panel layout** — Player + queue on the left, social feed on the right. Familiar Discord-meets-Spotify pattern
-- **In-memory playback sync** — Server tracks current song + timestamp, clients seek on join. "Close enough" sync (within ~2 seconds) matches what Spotify Jam does
+- Local state is SQLite-backed; no external database is required.
+- Durable room data lives in Prisma. Process-local live playback/socket state lives under `backend/src/socket`.
+- Host identity is the `clientToken`/host token, stored in the browser as `nero-client-token`.
+- YouTube ad/CORS noise and browser extension console messages can appear inside the embedded player; these are external to the app.
+- More architecture details are in [docs/architecture.md](./docs/architecture.md) and [docs/realtime-flow.md](./docs/realtime-flow.md).
+

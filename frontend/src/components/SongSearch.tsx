@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, type SyntheticEvent } from 'react';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
 import { API_URL } from '../constants/api';
@@ -19,12 +19,15 @@ export default function SongSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { party, songs, participantId } = usePartyStore();
+  const isHost = usePartyStore((s) => s.isHost);
   const maxSongs = party?.maxSongsPerPerson ?? 5;
+  const canAddSongs = party?.addMode !== 'host' || isHost;
 
   const mySongCount = songs.filter(
     (s: any) => s.addedById === participantId
   ).length;
   const songsRemaining = Math.max(0, maxSongs - mySongCount);
+  const addDisabled = !canAddSongs || songsRemaining <= 0;
 
   const searchYouTube = useCallback(
     async (q: string) => {
@@ -79,7 +82,7 @@ export default function SongSearch() {
   };
 
   const handleAddSong = (result: SearchResult) => {
-    if (songsRemaining <= 0) return;
+    if (addDisabled) return;
 
     socket.emit('add-song', {
       youtubeVideoId: result.videoId,
@@ -96,6 +99,14 @@ export default function SongSearch() {
     const txt = document.createElement('textarea');
     txt.innerHTML = html;
     return txt.value;
+  };
+
+  const handleThumbnailError = (event: SyntheticEvent<HTMLImageElement>, videoId: string) => {
+    const image = event.currentTarget;
+    const fallback = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+    if (image.src !== fallback) {
+      image.src = fallback;
+    }
   };
 
   return (
@@ -127,12 +138,12 @@ export default function SongSearch() {
             value={query}
             onChange={(e) => handleSearchInput(e.target.value)}
             placeholder="Search songs..."
-            disabled={songsRemaining <= 0}
+            disabled={addDisabled}
             className="flex-1 bg-nero-surface border border-nero-border rounded-lg px-4 py-3 text-nero-text placeholder-nero-dim focus:outline-none focus:border-nero-accent transition-colors disabled:opacity-50"
           />
           <button
             onClick={() => searchYouTube(query)}
-            disabled={!query.trim() || loading || songsRemaining <= 0}
+            disabled={!query.trim() || loading || addDisabled}
             className="bg-nero-accent hover:bg-nero-accent-hover disabled:opacity-50 text-nero-bg px-4 py-3 rounded-lg transition-colors"
           >
             {loading ? (
@@ -145,9 +156,15 @@ export default function SongSearch() {
             )}
           </button>
           <span className="text-sm text-nero-dim shrink-0">
-            {songsRemaining} left
+            {canAddSongs ? `${songsRemaining} left` : 'Host only'}
           </span>
         </div>
+
+        {!canAddSongs && (
+          <p className="mt-2 text-sm font-medium text-nero-muted">
+            This room is set so only the host can add songs.
+          </p>
+        )}
 
         {error && (
           <p className="mt-2 text-sm text-red-400">{error}</p>
@@ -161,10 +178,10 @@ export default function SongSearch() {
                 YouTube results
               </span>
               <span className="text-xs font-semibold text-nero-secondary">
-                {results.length} found
+                Showing {results.length} results
               </span>
             </div>
-            <div className="max-h-[min(52vh,32rem)] overflow-y-auto overscroll-contain pr-1">
+            <div className="max-h-[22rem] overflow-y-auto overscroll-contain pr-1">
               {results.map((result) => (
                 <button
                   key={result.videoId}
@@ -174,6 +191,7 @@ export default function SongSearch() {
                   <img
                     src={result.thumbnailUrl}
                     alt=""
+                    onError={(event) => handleThumbnailError(event, result.videoId)}
                     className="h-11 w-16 flex-shrink-0 rounded-md object-cover"
                   />
                   <div className="min-w-0 flex-1">

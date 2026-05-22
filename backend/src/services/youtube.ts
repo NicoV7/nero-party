@@ -12,6 +12,23 @@ export interface YouTubeResult {
   thumbnailUrl: string;
 }
 
+type YouTubeThumbnailSet = {
+  default?: { url?: string };
+  medium?: { url?: string };
+  high?: { url?: string };
+  standard?: { url?: string };
+  maxres?: { url?: string };
+};
+
+function pickThumbnail(videoId: string, thumbnails: YouTubeThumbnailSet): string {
+  return (
+    thumbnails.high?.url ||
+    thumbnails.medium?.url ||
+    thumbnails.default?.url ||
+    `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+  );
+}
+
 export async function searchSong(
   title: string,
   artist: string
@@ -58,7 +75,7 @@ export async function searchSong(
     videoId: item.id.videoId,
     title: item.snippet.title,
     artist,
-    thumbnailUrl: item.snippet.thumbnails.high.url,
+    thumbnailUrl: pickThumbnail(item.id.videoId, item.snippet.thumbnails),
   };
 }
 
@@ -116,6 +133,6 @@ export async function searchQuery(
     videoId: item.id.videoId,
     title: item.snippet.title,
     artist: item.snippet.channelTitle,
-    thumbnailUrl: item.snippet.thumbnails.high.url,
+    thumbnailUrl: pickThumbnail(item.id.videoId, item.snippet.thumbnails),
   }));
 }

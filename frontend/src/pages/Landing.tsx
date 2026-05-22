@@ -10,6 +10,7 @@ type CreateForm = {
   maxSongsPerPerson: number | "";
   maxUsers: number | "";
   maxDurationMinutes: number;
+  addMode: "everyone" | "host";
 };
 
 type ActivePanel = "create" | "join";
@@ -52,6 +53,7 @@ export default function Landing() {
     maxSongsPerPerson: 5,
     maxUsers: 12,
     maxDurationMinutes: 60,
+    addMode: "everyone",
   });
 
   useEffect(() => {
@@ -98,6 +100,7 @@ export default function Landing() {
           maxSongsPerPerson,
           maxUsers,
           maxDurationMinutes: form.maxDurationMinutes,
+          addMode: form.addMode,
         }),
       });
 
@@ -308,6 +311,28 @@ export default function Landing() {
                     </select>
                   </Field>
                 </div>
+
+                <Field label="Who can add" helper="Choose how tightly the queue is controlled.">
+                  <div className="grid grid-cols-2 rounded-[1.1rem] bg-[#f3eadf] p-1">
+                    {[
+                      { value: "everyone", label: "Everyone can add" },
+                      { value: "host", label: "Only host can add" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, addMode: option.value as CreateForm["addMode"] }))}
+                        className={`rounded-[0.9rem] px-3 py-2.5 text-sm font-bold transition-[background-color,color,box-shadow,transform] duration-150 ease-[var(--ease-ui)] ${
+                          form.addMode === option.value
+                            ? "bg-white text-nero-text shadow-[0_10px_28px_-22px_rgba(41,35,30,0.45)]"
+                            : "text-nero-muted hover:text-nero-text"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
 
                 {error && <p className="rounded-2xl border border-nero-accent/25 bg-nero-accent/8 px-4 py-3 text-sm font-medium text-[#a83a25]">{error}</p>}
 
