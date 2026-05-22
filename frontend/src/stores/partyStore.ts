@@ -3,6 +3,7 @@ import type {
   SongData,
   ParticipantData,
   ChatMessageData,
+  LeaderboardSongData,
   PartyStatePayload,
 } from '../lib/types';
 
@@ -50,6 +51,7 @@ interface PartyStore {
     code: string;
     hostName: string;
     maxSongsPerPerson: number;
+    maxUsers: number;
     maxDurationMinutes: number;
     status: string;
     createdAt: string;
@@ -66,6 +68,7 @@ interface PartyStore {
   // Winner state
   winner: SongData | null;
   songResults: (SongData & { totalScore: number; reactionBreakdown: Record<string, number> })[];
+  leaderboard: LeaderboardSongData[];
   stats: {
     totalSongs: number;
     totalParticipants: number;
@@ -83,6 +86,7 @@ interface PartyStore {
   addParticipant: (p: ParticipantData) => void;
   removeParticipant: (id: string) => void;
   setPartyEnded: (winner: SongData | null, songResults: any[], stats: any) => void;
+  setLeaderboard: (songs: LeaderboardSongData[]) => void;
   setPendingReaction: (song: { songId: string; title: string; artist: string }) => void;
   clearPendingReaction: () => void;
   setConnected: (connected: boolean) => void;
@@ -104,6 +108,7 @@ const initialState = {
   pendingReaction: null,
   winner: null,
   songResults: [],
+  leaderboard: [],
   stats: null,
 };
 
@@ -172,6 +177,9 @@ export const usePartyStore = create<PartyStore>((set) => ({
       stats,
       party: state.party ? { ...state.party, status: 'ended' } : null,
     })),
+
+  setLeaderboard: (leaderboard) =>
+    set({ leaderboard }),
 
   setPendingReaction: (song) =>
     set({ pendingReaction: song }),

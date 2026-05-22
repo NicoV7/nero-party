@@ -153,33 +153,43 @@ export default function SongSearch() {
           <p className="mt-2 text-sm text-red-400">{error}</p>
         )}
 
-        {/* Search Results Dropdown */}
+        {/* Search Results */}
         {results.length > 0 && (
-          <div className="absolute z-10 mt-2 w-full bg-nero-surface border border-nero-border rounded-lg overflow-hidden shadow-xl">
-            {results.map((result) => (
-              <button
-                key={result.videoId}
-                onClick={() => handleAddSong(result)}
-                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-nero-surface-hover transition-colors text-left"
-              >
-                <img
-                  src={result.thumbnailUrl}
-                  alt=""
-                  className="w-12 h-9 rounded object-cover flex-shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-nero-text truncate">
-                    {decodeHtml(result.title)}
-                  </p>
-                  <p className="text-xs text-nero-muted truncate">
-                    {decodeHtml(result.artist)}
-                  </p>
-                </div>
-                <span className="text-nero-accent text-xs font-medium flex-shrink-0">
-                  + Add
-                </span>
-              </button>
-            ))}
+          <div className="mt-3 overflow-hidden rounded-xl border border-nero-border bg-nero-surface shadow-[0_18px_50px_-42px_rgba(36,31,27,0.48)]">
+            <div className="flex items-center justify-between border-b border-nero-border px-3 py-2">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-nero-muted">
+                YouTube results
+              </span>
+              <span className="text-xs font-semibold text-nero-secondary">
+                {results.length} found
+              </span>
+            </div>
+            <div className="max-h-[min(52vh,32rem)] overflow-y-auto overscroll-contain pr-1">
+              {results.map((result) => (
+                <button
+                  key={result.videoId}
+                  onClick={() => handleAddSong(result)}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-nero-surface-hover focus-visible:bg-nero-surface-hover focus-visible:outline-none"
+                >
+                  <img
+                    src={result.thumbnailUrl}
+                    alt=""
+                    className="h-11 w-16 flex-shrink-0 rounded-md object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-nero-text">
+                      {decodeHtml(result.title)}
+                    </p>
+                    <p className="truncate text-xs text-nero-muted">
+                      {decodeHtml(result.artist)}
+                    </p>
+                  </div>
+                  <span className="flex-shrink-0 text-xs font-bold text-nero-secondary">
+                    Add
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

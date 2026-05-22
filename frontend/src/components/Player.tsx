@@ -37,6 +37,7 @@ function loadYouTubeAPI(): Promise<void> {
 }
 
 export default function Player() {
+  const videoShellRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const playerReady = useRef(false);
@@ -46,6 +47,8 @@ export default function Player() {
   const playbackOffset = usePartyStore((s) => s.playbackOffset);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [showFullscreenHint, setShowFullscreenHint] = useState(false);
+  const [captionsEnabled, setCaptionsEnabled] = useState(true);
 
   const handleVideoClick = useCallback(() => {
     const player = playerRef.current;
@@ -81,7 +84,8 @@ export default function Player() {
           playsinline: 1,
           disablekb: 1,
           iv_load_policy: 3,
-          cc_load_policy: 0,
+          cc_load_policy: 1,
+          cc_lang_pref: 'en',
         },
         events: {
           onReady: () => {
@@ -126,12 +130,29 @@ export default function Player() {
         case 'restart':
           player.seekTo(0, true);
           break;
+        case 'stop':
+          player.stopVideo?.();
+          lastVideoId.current = null;
+          setIsPaused(false);
+          break;
       }
     };
 
     socket.on('playback-control', handlePlaybackControl);
     return () => {
       socket.off('playback-control', handlePlaybackControl);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isVideoFullscreen = document.fullscreenElement === videoShellRef.current;
+      setShowFullscreenHint(isVideoFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -142,6 +163,9 @@ export default function Player() {
 
     lastVideoId.current = videoId;
     player.loadVideoById(videoId);
+    if (captionsEnabled) {
+      player.loadModule?.('captions');
+    }
     if (offset && offset > 0) {
       setTimeout(() => {
         player.seekTo(offset / 1000, true);
@@ -149,15 +173,59 @@ export default function Player() {
     }
   }
 
+  const handleFullscreen = useCallback(() => {
+    const shell = videoShellRef.current;
+    if (!shell) return;
+
+    if (document.fullscreenElement === shell) {
+      document.exitFullscreen?.();
+      return;
+    }
+
+    shell.requestFullscreen?.().then(() => {
+      setShowFullscreenHint(true);
+      window.setTimeout(() => setShowFullscreenHint(false), 3500);
+    }).catch(() => {
+      setShowFullscreenHint(false);
+    });
+  }, []);
+
+  const handleToggleCaptions = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !playerReady.current) return;
+
+    setCaptionsEnabled((enabled) => {
+      const next = !enabled;
+      if (next) {
+        player.loadModule?.('captions');
+      } else {
+        player.unloadModule?.('captions');
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
-    if (!currentSong) return;
+    if (!currentSong) {
+      const player = playerRef.current;
+      if (player && playerReady.current) {
+        player.stopVideo?.();
+      }
+      lastVideoId.current = null;
+      setIsPaused(false);
+      return;
+    }
+
     loadVideo(currentSong.youtubeVideoId, playbackOffset);
   }, [currentSong?.youtubeVideoId, playbackOffset]);
 
   return (
-    <div className="rounded-xl bg-nero-surface">
-      {/* Video area — fixed height, iframe handles aspect ratio internally */}
-      <div className="relative w-full h-[35vh] bg-black rounded-t-xl overflow-hidden">
+    <div className="overflow-hidden rounded-[1.1rem] bg-nero-surface shadow-[0_24px_80px_-64px_rgba(36,31,27,0.54)]">
+      {/* Video area */}
+      <div
+        ref={videoShellRef}
+        className="relative aspect-video w-full overflow-hidden bg-[#12110f] fullscreen:h-screen fullscreen:min-h-screen fullscreen:rounded-none fullscreen:aspect-auto"
+      >
         <div ref={containerRef} className="absolute inset-0" />
         {/* Transparent overlay: blocks YouTube UI, captures clicks for play/pause */}
         {currentSong && (
@@ -167,7 +235,7 @@ export default function Player() {
           >
             {showPlayIcon && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-black/60 rounded-full p-4 animate-pulse">
+                <div className="rounded-full bg-black/60 p-4 animate-pulse">
                   {isPaused ? (
                     <svg className="w-12 h-12 text-nero-text" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
@@ -183,24 +251,29 @@ export default function Player() {
           </div>
         )}
         {!currentSong && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-nero-surface">
-            <svg className="w-12 h-12 text-nero-muted mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-nero-surface-hover">
+            <svg className="w-12 h-12 text-nero-accent mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
             </svg>
-            <p className="text-nero-text text-sm font-medium">No song playing</p>
-            <p className="text-nero-dim text-xs mt-1">Search below to queue something up</p>
+            <p className="text-nero-text text-sm font-bold">No song playing</p>
+            <p className="text-nero-muted text-xs mt-1">Add songs below to get the room moving</p>
+          </div>
+        )}
+        {showFullscreenHint && (
+          <div className="pointer-events-none absolute left-1/2 top-5 z-20 -translate-x-1/2 rounded-full border border-white/20 bg-black/58 px-4 py-2 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-xl">
+            Press Esc to exit fullscreen
           </div>
         )}
       </div>
 
       {/* Now playing info */}
       {currentSong && (
-        <div className="px-4 py-3">
+        <div className="px-4 py-4 sm:px-5">
           <div className="min-w-0">
-            <p className="text-xs text-nero-accent uppercase tracking-widest font-medium mb-1">
+            <p className="text-xs text-nero-secondary uppercase tracking-widest font-bold mb-1">
               Now Playing
             </p>
-            <p className="text-lg text-nero-text font-semibold tracking-tight truncate">
+            <p className="text-2xl text-nero-text font-black tracking-tight truncate">
               {currentSong.title}
             </p>
             <p className="text-nero-muted text-sm truncate">
@@ -211,7 +284,13 @@ export default function Player() {
       )}
 
       {/* Custom playback controls */}
-      <PlayerControls playerRef={playerRef} playerReady={playerReady} />
+      <PlayerControls
+        playerRef={playerRef}
+        playerReady={playerReady}
+        onFullscreen={handleFullscreen}
+        captionsEnabled={captionsEnabled}
+        onToggleCaptions={handleToggleCaptions}
+      />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { usePartyStore } from '../stores/partyStore';
 interface PlayerControlsProps {
   playerRef: React.MutableRefObject<any>;
   playerReady: React.MutableRefObject<boolean>;
+  onFullscreen: () => void;
+  captionsEnabled: boolean;
+  onToggleCaptions: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -13,7 +16,13 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function PlayerControls({ playerRef, playerReady }: PlayerControlsProps) {
+export default function PlayerControls({
+  playerRef,
+  playerReady,
+  onFullscreen,
+  captionsEnabled,
+  onToggleCaptions,
+}: PlayerControlsProps) {
   const isHost = usePartyStore((s) => s.isHost);
   const currentSong = usePartyStore((s) => s.currentSong);
 
@@ -171,14 +180,14 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
     medium: '360p', small: '240p', tiny: '144p', auto: 'Auto',
   };
 
-  const btnBase = "flex items-center justify-center rounded-full transition-transform duration-200";
-  const btnSmall = `${btnBase} w-9 h-9 text-nero-muted hover:text-nero-text hover:bg-nero-surface-hover`;
-  const btnPlay = `${btnBase} w-12 h-12 bg-nero-accent text-nero-bg hover:brightness-110`;
+  const btnBase = "flex shrink-0 items-center justify-center rounded-md transition-[background-color,color,filter,transform] duration-150 ease-[var(--ease-ui)] active:scale-[0.97]";
+  const btnSmall = `${btnBase} h-9 w-9 text-nero-muted hover:bg-nero-surface-hover hover:text-nero-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nero-secondary`;
+  const btnPlay = `${btnBase} h-12 w-12 rounded-full bg-nero-accent text-white shadow-[0_14px_30px_-22px_rgba(217,85,56,0.7)] hover:bg-nero-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nero-secondary`;
 
   return (
-    <div className="px-4 pb-3 pt-1">
+    <div className="px-4 pb-4 pt-1 sm:px-5">
       {/* Timeline scrubber */}
-      <div className="flex items-center gap-3 mb-2">
+      <div className="mb-3 flex items-center gap-3">
         <span className="text-[11px] text-nero-dim w-10 text-right tabular-nums">
           {formatTime(currentTime)}
         </span>
@@ -200,7 +209,7 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-nero-text [&::-webkit-slider-thumb]:opacity-0
               group-hover:[&::-webkit-slider-thumb]:opacity-100 [&::-webkit-slider-thumb]:transition-opacity"
             style={{
-              background: `linear-gradient(to right, #d4a037 ${progress}%, #3d3632 ${progress}%)`,
+              background: `linear-gradient(to right, #0f766e ${progress}%, #dccdb9 ${progress}%)`,
             }}
           />
         </div>
@@ -210,9 +219,11 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
       </div>
 
       {/* Controls row */}
-      <div className="flex items-center justify-center relative">
+      <div className="grid gap-2 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+        <div className="hidden lg:block" />
+
         {/* Center: transport controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           {isHost && (
             <button onClick={handlePrev} className={btnSmall} title="Previous">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -222,8 +233,10 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
           )}
           {isHost && (
             <button onClick={() => socket.emit('seek', { seconds: -10 })} className={btnSmall} title="Rewind 10s">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12.5 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 8H4V3" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.7 8A8 8 0 1112 20" />
+                <text x="8.2" y="15.6" fill="currentColor" stroke="none" fontSize="6.5" fontWeight="800">10</text>
               </svg>
             </button>
           )}
@@ -242,8 +255,10 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
 
           {isHost && (
             <button onClick={() => socket.emit('seek', { seconds: 10 })} className={btnSmall} title="Forward 10s">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8V1l-5 5 5 5V7c3.31 0 6 2.69 6 6z" />
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 8h5V3" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.3 8A8 8 0 1012 20" />
+                <text x="8.2" y="15.6" fill="currentColor" stroke="none" fontSize="6.5" fontWeight="800">10</text>
               </svg>
             </button>
           )}
@@ -256,8 +271,8 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
           )}
         </div>
 
-        {/* Right: utility controls (everyone) — absolute positioned */}
-        <div className="absolute right-0 flex items-center gap-1">
+        {/* Right: utility controls (everyone) */}
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 lg:justify-end">
           {/* Volume */}
           <button onClick={toggleMute} className={btnSmall} title={isMuted ? "Unmute" : "Mute"}>
             {isMuted || volume === 0 ? (
@@ -280,7 +295,7 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
             max={100}
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-16 h-1 bg-nero-border rounded-full appearance-none cursor-pointer
+            className="hidden h-1 w-16 cursor-pointer appearance-none rounded-full bg-nero-border xl:block
               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5
               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-nero-text"
           />
@@ -289,18 +304,18 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
           <div className="relative">
             <button
               onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowQualityMenu(false); }}
-              className={`${btnSmall} text-[11px] font-medium w-auto px-2`}
+              className={`${btnSmall} w-auto px-2 text-[11px] font-semibold`}
               title="Playback speed"
             >
               {playbackRate}x
             </button>
             {showSpeedMenu && (
-              <div className="absolute bottom-full right-0 mb-1 bg-nero-surface-hover border border-nero-border rounded-lg overflow-hidden shadow-xl z-20">
+              <div className="absolute bottom-full right-0 z-20 mb-1 overflow-hidden rounded-md border border-nero-border bg-nero-surface shadow-[0_18px_46px_-34px_rgba(36,31,27,0.46)]">
                 {speeds.map((s) => (
                   <button
                     key={s}
                     onClick={() => changeSpeed(s)}
-                    className={`block w-full px-4 py-1.5 text-xs text-left hover:bg-nero-surface-hover ${s === playbackRate ? 'text-nero-accent' : 'text-nero-text'}`}
+                    className={`block w-full px-4 py-2 text-left text-xs transition-colors hover:bg-nero-surface-hover ${s === playbackRate ? 'text-nero-secondary' : 'text-nero-text'}`}
                   >
                     {s}x
                   </button>
@@ -322,12 +337,12 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
                 </svg>
               </button>
               {showQualityMenu && (
-                <div className="absolute bottom-full right-0 mb-1 bg-nero-surface-hover border border-nero-border rounded-lg overflow-hidden shadow-xl z-20">
+                <div className="absolute bottom-full right-0 z-20 mb-1 min-w-24 origin-bottom-right overflow-hidden rounded-md border border-nero-border bg-nero-surface shadow-[0_18px_46px_-34px_rgba(36,31,27,0.46)]">
                   {availableQualities.map((q) => (
                     <button
                       key={q}
                       onClick={() => changeQuality(q)}
-                      className={`block w-full px-4 py-1.5 text-xs text-left hover:bg-nero-surface-hover ${q === currentQuality ? 'text-nero-accent' : 'text-nero-text'}`}
+                      className={`block w-full px-4 py-2 text-left text-xs transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-nero-surface-hover ${q === currentQuality ? 'text-nero-secondary' : 'text-nero-text'}`}
                     >
                       {qualityLabels[q] ?? q}
                     </button>
@@ -338,6 +353,20 @@ export default function PlayerControls({ playerRef, playerReady }: PlayerControl
           )}
 
           {/* Link to YouTube */}
+          <button
+            onClick={onToggleCaptions}
+            className={`${btnSmall} w-auto px-2 text-[11px] font-black ${captionsEnabled ? 'bg-nero-surface-hover text-nero-secondary' : ''}`}
+            title={captionsEnabled ? 'Hide captions' : 'Show captions'}
+          >
+            CC
+          </button>
+
+          <button onClick={onFullscreen} className={btnSmall} title="Fullscreen">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H4a1 1 0 00-1 1v4m13-5h4a1 1 0 011 1v4M8 21H4a1 1 0 01-1-1v-4m18 0v4a1 1 0 01-1 1h-4" />
+            </svg>
+          </button>
+
           <button onClick={openOnYouTube} className={btnSmall} title="Open on YouTube">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />

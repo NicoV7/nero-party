@@ -23,7 +23,7 @@ function generatePartyCode(): string {
 // POST /api/parties — Create a new party
 router.post("/", async (req, res) => {
   try {
-    const { name, hostName, maxSongsPerPerson, maxDurationMinutes } = req.body;
+    const { name, hostName, maxSongsPerPerson, maxUsers, maxDurationMinutes } = req.body;
 
     // Validate name
     if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
@@ -41,6 +41,13 @@ router.post("/", async (req, res) => {
     const songsPerPerson = maxSongsPerPerson ?? 5;
     if (typeof songsPerPerson !== "number" || songsPerPerson < 1 || songsPerPerson > 20) {
       res.status(400).json({ error: "maxSongsPerPerson must be between 1 and 20" });
+      return;
+    }
+
+    // Validate maxUsers
+    const userLimit = maxUsers ?? 12;
+    if (typeof userLimit !== "number" || userLimit < 2 || userLimit > 100) {
+      res.status(400).json({ error: "maxUsers must be between 2 and 100" });
       return;
     }
 
@@ -78,6 +85,7 @@ router.post("/", async (req, res) => {
         hostToken,
         hostName: sanitizedHostName,
         maxSongsPerPerson: songsPerPerson,
+        maxUsers: userLimit,
         maxDurationMinutes: duration,
       },
     });
@@ -92,9 +100,9 @@ router.post("/", async (req, res) => {
 // GET /api/parties/:code — Get party info for join screen
 router.get("/:code", async (req, res) => {
   try {
+    const code = req.params.code.toUpperCase();
     const party = await prisma.party.findUnique({
-      where: { code: req.params.code },
-      include: { _count: { select: { participants: true } } },
+      where: { code },
     });
 
     if (!party) {
@@ -102,11 +110,16 @@ router.get("/:code", async (req, res) => {
       return;
     }
 
+    const participantCount = await prisma.participant.count({
+      where: { partyId: party.id, isConnected: true },
+    });
+
     res.json({
       name: party.name,
       hostName: party.hostName,
       status: party.status,
-      participantCount: party._count.participants,
+      participantCount,
+      maxUsers: party.maxUsers,
     });
   } catch (error) {
     console.error("Error fetching party:", error);
@@ -118,6 +131,7 @@ router.get("/:code", async (req, res) => {
 router.post("/:code/join", async (req, res) => {
   try {
     const { name, clientToken } = req.body;
+    const code = req.params.code.toUpperCase();
 
     // Validate name
     if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 50) {
@@ -132,7 +146,7 @@ router.post("/:code/join", async (req, res) => {
     }
 
     const party = await prisma.party.findUnique({
-      where: { code: req.params.code },
+      where: { code },
     });
 
     if (!party) {
@@ -160,6 +174,15 @@ router.post("/:code/join", async (req, res) => {
       });
 
       res.json({ participantId: existingParticipant.id, partyCode: party.code });
+      return;
+    }
+
+    const connectedCount = await prisma.participant.count({
+      where: { partyId: party.id, isConnected: true },
+    });
+
+    if (connectedCount >= party.maxUsers) {
+      res.status(403).json({ error: "This room is full" });
       return;
     }
 

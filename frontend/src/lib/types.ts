@@ -48,6 +48,11 @@ export interface SongData {
   userVote: number | null;
 }
 
+export interface LeaderboardSongData extends SongData {
+  reactionCount: number;
+  reactionBreakdown: Record<string, number>;
+}
+
 export interface ParticipantData {
   id: string;
   name: string;
@@ -75,6 +80,7 @@ export interface PartyStatePayload {
     code: string;
     hostName: string;
     maxSongsPerPerson: number;
+    maxUsers: number;
     maxDurationMinutes: number;
     status: string;
     createdAt: string;
@@ -90,6 +96,10 @@ export interface PartyStatePayload {
 
 export interface PartyEndedPayload {
   winner: SongData | null;
+  songResults: (SongData & {
+    totalScore: number;
+    reactionBreakdown: Record<string, number>;
+  })[];
   stats: {
     totalSongs: number;
     totalParticipants: number;
@@ -104,7 +114,7 @@ export interface VoteUpdatedPayload {
 }
 
 export interface NowPlayingPayload {
-  song: SongData;
+  song: SongData | null;
 }
 
 export interface SongAddedPayload {
@@ -129,11 +139,13 @@ export interface ClientToServerEvents {
   'reaction': (payload: ReactionPayload) => void;
   'skip-song': () => void;
   'end-party': () => void;
+  'kick-participant': (payload: { participantId: string }) => void;
   'join-room': (payload: { partyCode: string; clientToken: string }) => void;
 }
 
 export interface ServerToClientEvents {
   'party-state': (payload: PartyStatePayload) => void;
+  'leaderboard-updated': (payload: LeaderboardSongData[]) => void;
   'song-added': (payload: SongAddedPayload) => void;
   'ai-response': (payload: AiResponsePayload) => void;
   'vote-updated': (payload: VoteUpdatedPayload) => void;
@@ -143,6 +155,7 @@ export interface ServerToClientEvents {
   'participant-joined': (payload: ParticipantJoinedPayload) => void;
   'participant-left': (payload: { participantId: string }) => void;
   'party-ended': (payload: PartyEndedPayload) => void;
+  'kicked': (payload: { message: string }) => void;
   'error': (payload: ErrorPayload) => void;
 }
 
@@ -152,6 +165,7 @@ export interface CreatePartyRequest {
   name: string;
   hostName: string;
   maxSongsPerPerson?: number;
+  maxUsers?: number;
   maxDurationMinutes?: number;
 }
 

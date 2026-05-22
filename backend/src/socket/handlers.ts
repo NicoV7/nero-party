@@ -18,6 +18,7 @@ const socketParticipants = new Map<
   string,
   { participantId: string; partyCode: string; clientToken: string }
 >();
+const kickedParticipants = new Set<string>();
 const partyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 // ---------------------------------------------------------------------------
@@ -27,6 +28,10 @@ const partyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 /** Strip HTML tags from a string. */
 function sanitize(input: string): string {
   return input.replace(/<[^>]*>/g, "");
+}
+
+function kickedKey(partyCode: string, clientToken: string): string {
+  return `${partyCode}:${clientToken}`;
 }
 
 /** Map reaction key to its score value. */
@@ -53,7 +58,46 @@ function toSongData(song: any): any {
     aiPrompt: song.aiPrompt ?? null,
     position: song.position,
     status: song.status,
+    netVotes: 0,
+    totalScore: 0,
+    userVote: null,
   };
+}
+
+async function buildLeaderboard(partyId: string): Promise<any[]> {
+  const songs = await prisma.song.findMany({
+    where: { partyId },
+    include: {
+      votes: true,
+      addedBy: { select: { id: true, name: true, avatarColor: true } },
+    },
+  });
+
+  const statusOrder: Record<string, number> = { playing: 0, queued: 1, played: 2 };
+
+  return songs
+    .map((song) => {
+      const reactionBreakdown: Record<string, number> = {};
+      let totalScore = 0;
+
+      for (const vote of song.votes) {
+        reactionBreakdown[vote.reaction] = (reactionBreakdown[vote.reaction] || 0) + 1;
+        totalScore += REACTION_SCORES[vote.reaction] ?? 0;
+      }
+
+      return {
+        ...toSongData(song),
+        totalScore,
+        reactionBreakdown,
+        reactionCount: song.votes.length,
+      };
+    })
+    .sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      const statusDiff = (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1);
+      if (statusDiff !== 0) return statusDiff;
+      return a.position - b.position;
+    });
 }
 
 /** Pick a vibe emoji based on keywords in the reading text. */
@@ -108,6 +152,7 @@ async function advanceToNextSong(io: Server, partyCode: string): Promise<void> {
       rs.isPlaying = false;
       rs.startedAt = null;
     }
+    io.to(partyCode).emit("playback-control", { action: "stop" });
     io.to(partyCode).emit("now-playing", { song: null });
     return;
   }
@@ -157,7 +202,7 @@ async function endParty(io: Server, partyCode: string): Promise<void> {
 
   // Find the winner using reaction scores
   const allSongs = await prisma.song.findMany({
-    where: { partyId: party.id, status: { in: ["played", "playing"] } },
+    where: { partyId: party.id },
     include: {
       votes: true,
       addedBy: { select: { id: true, name: true, avatarColor: true } },
@@ -269,6 +314,12 @@ export function setupSocketHandlers(io: Server): void {
           return;
         }
 
+        if (kickedParticipants.has(kickedKey(partyCode, clientToken))) {
+          socket.emit("kicked", { message: "You were removed from this room." });
+          socket.disconnect(true);
+          return;
+        }
+
         let participant = await prisma.participant.findFirst({
           where: { partyId: party.id, clientToken },
         });
@@ -277,6 +328,18 @@ export function setupSocketHandlers(io: Server): void {
         if (!participant) {
           const AVATAR_COLORS = ["#7c3aed", "#2563eb", "#16a34a", "#ea580c", "#e11d48", "#0891b2", "#c026d3", "#65a30d"];
           const isHost = party.hostToken === clientToken;
+
+          if (!isHost) {
+            const connectedCount = await prisma.participant.count({
+              where: { partyId: party.id, isConnected: true },
+            });
+
+            if (connectedCount >= party.maxUsers) {
+              socket.emit("error", { message: "This room is full" });
+              return;
+            }
+          }
+
           participant = await prisma.participant.create({
             data: {
               partyId: party.id,
@@ -343,6 +406,7 @@ export function setupSocketHandlers(io: Server): void {
             code: party.code,
             status: party.status,
             maxSongsPerPerson: party.maxSongsPerPerson,
+            maxUsers: party.maxUsers,
             maxDurationMinutes: party.maxDurationMinutes,
             hostName: party.hostName,
           },
@@ -360,6 +424,8 @@ export function setupSocketHandlers(io: Server): void {
           playbackOffset: roomState?.startedAt ? Date.now() - roomState.startedAt : 0,
           isHost: clientToken === party.hostToken,
         });
+
+        socket.emit("leaderboard-updated", await buildLeaderboard(party.id));
 
         // Broadcast to others
         socket.to(partyCode).emit("participant-joined", {
@@ -449,6 +515,7 @@ export function setupSocketHandlers(io: Server): void {
           const songData = toSongData(song);
 
           io.to(sp.partyCode).emit("song-added", songData);
+          io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
 
           // System chat message
           const sysMsg = await prisma.chatMessage.create({
@@ -554,6 +621,7 @@ export function setupSocketHandlers(io: Server): void {
           vibeCard,
           songs: createdSongs,
         });
+        io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
 
         // Create AI vibe-card chat message
         const aiMsg = await prisma.chatMessage.create({
@@ -631,6 +699,7 @@ export function setupSocketHandlers(io: Server): void {
 
         // Reactions are private until party end — just acknowledge to the sender
         socket.emit("reaction-saved", { songId, reaction });
+        io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
       } catch (error) {
         console.error("Error in react-to-song:", error);
         socket.emit("error", { message: "Failed to save reaction" });
@@ -965,6 +1034,7 @@ export function setupSocketHandlers(io: Server): void {
 
         const songData = songs.map((song) => toSongData(song));
         io.to(sp.partyCode).emit("queue-updated", songData);
+        io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
       } catch (error) {
         console.error("Error in reorder-queue:", error);
         socket.emit("error", { message: "Failed to reorder queue" });
@@ -1023,6 +1093,7 @@ export function setupSocketHandlers(io: Server): void {
           },
         });
         io.to(sp.partyCode).emit("queue-updated", allSongs.map((s) => toSongData(s)));
+        io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
       } catch (error) {
         console.error("Error in play-song:", error);
         socket.emit("error", { message: "Failed to play song" });
@@ -1052,6 +1123,78 @@ export function setupSocketHandlers(io: Server): void {
       } catch (error) {
         console.error("Error in end-party:", error);
         socket.emit("error", { message: "Failed to end party" });
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // kick-participant (host only)
+    // -----------------------------------------------------------------------
+    socket.on("kick-participant", async ({ participantId }: { participantId: string }) => {
+      try {
+        const sp = socketParticipants.get(socket.id);
+        if (!sp) {
+          socket.emit("error", { message: "Not in a room" });
+          return;
+        }
+
+        const party = await prisma.party.findUnique({ where: { code: sp.partyCode } });
+        if (!party) return;
+
+        if (sp.clientToken !== party.hostToken) {
+          socket.emit("error", { message: "Only the host can kick participants" });
+          return;
+        }
+
+        const participant = await prisma.participant.findFirst({
+          where: { id: participantId, partyId: party.id },
+        });
+        if (!participant) {
+          socket.emit("error", { message: "Participant not found" });
+          return;
+        }
+
+        if (participant.clientToken === party.hostToken) {
+          socket.emit("error", { message: "The host cannot be kicked" });
+          return;
+        }
+
+        kickedParticipants.add(kickedKey(sp.partyCode, participant.clientToken));
+
+        await prisma.participant.update({
+          where: { id: participant.id },
+          data: { isConnected: false },
+        });
+
+        for (const [socketId, mapped] of socketParticipants.entries()) {
+          if (mapped.participantId !== participant.id) continue;
+          const targetSocket = io.sockets.sockets.get(socketId);
+          targetSocket?.emit("kicked", { message: "You were removed from this room." });
+          targetSocket?.disconnect(true);
+          socketParticipants.delete(socketId);
+        }
+
+        io.to(sp.partyCode).emit("participant-left", {
+          participantId: participant.id,
+        });
+
+        const sysMsg = await prisma.chatMessage.create({
+          data: {
+            partyId: party.id,
+            content: `${participant.name} was removed from the room`,
+            type: "system",
+          },
+        });
+
+        io.to(sp.partyCode).emit("chat-message", {
+          id: sysMsg.id,
+          participantName: null,
+          content: sysMsg.content,
+          type: sysMsg.type,
+          createdAt: sysMsg.createdAt.toISOString(),
+        });
+      } catch (error) {
+        console.error("Error in kick-participant:", error);
+        socket.emit("error", { message: "Failed to kick participant" });
       }
     });
 

@@ -14,6 +14,7 @@ model Party {
   hostToken          String
   hostName           String
   maxSongsPerPerson  Int           @default(5)
+  maxUsers           Int           @default(12)
   maxDurationMinutes Int           @default(60)
   status             String        @default("waiting")
   createdAt          DateTime      @default(now())

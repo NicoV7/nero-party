@@ -73,7 +73,7 @@ export default function Queue() {
       {/* Header — click to expand/collapse */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 border-b border-nero-border flex items-center justify-between hover:bg-nero-surface-hover transition-colors"
+        className="flex w-full items-center justify-between border-b border-nero-border px-4 py-3 transition-[background-color,transform] duration-150 ease-[var(--ease-ui)] hover:bg-nero-surface-hover active:scale-[0.99]"
       >
         <h2 className="text-sm font-semibold text-nero-text uppercase tracking-widest">
           Up Next
@@ -83,7 +83,7 @@ export default function Queue() {
             {queuedSongs.length} {queuedSongs.length === 1 ? 'song' : 'songs'}
           </span>
           <svg
-            className={`w-4 h-4 text-nero-dim transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-nero-dim transition-transform duration-150 ease-[var(--ease-ui)] ${expanded ? 'rotate-180' : ''}`}
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -192,7 +192,7 @@ function SortableQueueItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 px-4 py-3 group cursor-pointer transition-colors animate-stagger-in opacity-0 ${
+      className={`group flex cursor-pointer items-center gap-3 px-4 py-3 opacity-0 transition-[background-color,box-shadow,opacity] duration-150 ease-[var(--ease-ui)] animate-stagger-in ${
         isDragging
           ? 'bg-nero-accent/10 shadow-lg opacity-90'
           : 'hover:bg-nero-surface-hover'
@@ -203,7 +203,7 @@ function SortableQueueItem({
       <div
         {...attributes}
         {...listeners}
-        className="w-6 shrink-0 flex items-center justify-center text-nero-dim hover:text-nero-text cursor-grab active:cursor-grabbing touch-none"
+        className="flex w-6 shrink-0 touch-none items-center justify-center text-nero-dim transition-colors duration-150 ease-[var(--ease-ui)] hover:text-nero-text cursor-grab active:cursor-grabbing"
         title="Drag to reorder"
         onClick={(e) => e.stopPropagation()}
       >
@@ -224,8 +224,8 @@ function SortableQueueItem({
           alt={song.title}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <svg className="w-8 h-8 text-nero-text ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-150 ease-[var(--ease-ui)] group-hover:opacity-100">
+          <svg className="ml-0.5 h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
         </div>
@@ -237,7 +237,7 @@ function SortableQueueItem({
         <p className="text-xs text-nero-muted truncate">{song.artist}</p>
         <p className="text-xs text-nero-dim truncate mt-0.5">
           {song.addedByAI
-            ? `AI pick from "${song.aiPrompt ?? 'vibes'}"`
+            ? `Suggested from "${song.aiPrompt ?? 'vibes'}"`
             : `Added by ${song.addedByName}`}
         </p>
       </div>
@@ -264,7 +264,7 @@ function QueueItem({
       className={`flex items-center gap-3 px-4 py-3 transition-colors ${
         index != null ? 'animate-stagger-in opacity-0' : ''
       } ${
-        played ? 'opacity-40' : 'hover:bg-nero-surface-hover'
+        played ? 'opacity-70' : 'hover:bg-nero-surface-hover'
       }`}
     >
       {/* Left indicator column */}
@@ -300,7 +300,7 @@ function QueueItem({
         <p className="text-xs text-nero-muted truncate">{song.artist}</p>
         <p className="text-xs text-nero-dim truncate mt-0.5">
           {song.addedByAI
-            ? `AI pick from "${song.aiPrompt ?? 'vibes'}"`
+            ? `Suggested from "${song.aiPrompt ?? 'vibes'}"`
             : `Added by ${song.addedByName}`}
         </p>
       </div>

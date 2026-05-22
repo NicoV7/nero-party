@@ -8,10 +8,12 @@ interface PartyInfo {
   hostName: string;
   status: string;
   participantCount: number;
+  maxUsers: number;
 }
 
 export default function JoinParty() {
   const { code } = useParams<{ code: string }>();
+  const normalizedCode = code?.toUpperCase();
   const navigate = useNavigate();
   const clientToken = usePartyStore((s) => s.clientToken);
   const setParticipantId = usePartyStore((s) => s.setParticipantId);
@@ -23,11 +25,11 @@ export default function JoinParty() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    if (!code) return;
+    if (!normalizedCode) return;
 
     const fetchParty = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/parties/${code}`);
+        const res = await fetch(`${API_URL}/api/parties/${normalizedCode}`);
 
         if (res.status === 404) {
           setError("Party not found. Check the code and try again.");
@@ -55,9 +57,14 @@ export default function JoinParty() {
     };
 
     fetchParty();
-  }, [code]);
+  }, [normalizedCode]);
 
   const handleJoin = async () => {
+    if (!normalizedCode) {
+      setError("Party code is missing.");
+      return;
+    }
+
     if (!name.trim()) {
       setError("Please enter your name.");
       return;
@@ -68,7 +75,7 @@ export default function JoinParty() {
 
     try {
       const res = await fetch(
-        `${API_URL}/api/parties/${code}/join`,
+        `${API_URL}/api/parties/${normalizedCode}/join`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -87,7 +94,7 @@ export default function JoinParty() {
 
       const { participantId } = await res.json();
       setParticipantId(participantId);
-      navigate(`/party/${code}`);
+      navigate(`/party/${normalizedCode}`);
     } catch {
       setError("Could not connect to the server.");
     } finally {
@@ -151,8 +158,7 @@ export default function JoinParty() {
             </span>
             <span className="text-nero-border">|</span>
             <span>
-              {partyInfo?.participantCount}{" "}
-              {partyInfo?.participantCount === 1 ? "person" : "people"} here
+              {partyInfo?.participantCount}/{partyInfo?.maxUsers} people here
             </span>
           </div>
         </div>

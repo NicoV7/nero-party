@@ -9,6 +9,7 @@ import ChatFeed from '../components/ChatFeed';
 import Participants from '../components/Participants';
 import ShareLink from '../components/ShareLink';
 import SongReactionToast from '../components/SongReactionToast';
+import SongLeaderboard from '../components/SongLeaderboard';
 
 export default function PartyRoom() {
   const { code } = useParams<{ code: string }>();
@@ -26,10 +27,13 @@ export default function PartyRoom() {
   const addParticipant = usePartyStore((s) => s.addParticipant);
   const removeParticipant = usePartyStore((s) => s.removeParticipant);
   const setPartyEnded = usePartyStore((s) => s.setPartyEnded);
+  const setLeaderboard = usePartyStore((s) => s.setLeaderboard);
   const setConnected = usePartyStore((s) => s.setConnected);
+  const isConnected = usePartyStore((s) => s.isConnected);
   const isHost = usePartyStore((s) => s.isHost);
   const setPendingReaction = usePartyStore((s) => s.setPendingReaction);
   const clearPendingReaction = usePartyStore((s) => s.clearPendingReaction);
+  const reset = usePartyStore((s) => s.reset);
 
   useEffect(() => {
     if (!code || listenersAttached.current) return;
@@ -58,6 +62,10 @@ export default function PartyRoom() {
     socket.on('party-state', (payload) => {
       setPartyState(payload);
       setConnected(true);
+    });
+
+    socket.on('leaderboard-updated', (songs: any[]) => {
+      setLeaderboard(songs);
     });
 
     socket.on('song-added', (data: any) => {
@@ -144,6 +152,14 @@ export default function PartyRoom() {
       navigate(`/party/${code}/results`);
     });
 
+    socket.on('kicked', (payload: any) => {
+      setErrorToast(payload.message ?? 'You were removed from this room.');
+      setTimeout(() => {
+        reset();
+        navigate('/');
+      }, 1600);
+    });
+
     socket.on('error', (payload: any) => {
       setErrorToast(payload.message ?? 'Something went wrong');
       setTimeout(() => setErrorToast(null), 5000);
@@ -153,6 +169,7 @@ export default function PartyRoom() {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('party-state');
+      socket.off('leaderboard-updated');
       socket.off('song-added');
       socket.off('ai-response');
       socket.off('now-playing');
@@ -164,6 +181,7 @@ export default function PartyRoom() {
       socket.off('participant-joined');
       socket.off('participant-left');
       socket.off('party-ended');
+      socket.off('kicked');
       socket.off('error');
       disconnectSocket();
       listenersAttached.current = false;
@@ -180,74 +198,130 @@ export default function PartyRoom() {
     addParticipant,
     removeParticipant,
     setPartyEnded,
+    setLeaderboard,
     setConnected,
     setPendingReaction,
     clearPendingReaction,
+    reset,
   ]);
 
   if (!party) {
     return (
-      <div className="min-h-screen bg-nero-bg flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-nero-accent border-t-transparent rounded-full animate-spin" />
-          <p className="text-nero-muted text-sm">Joining the party...</p>
+      <div className="min-h-[100dvh] bg-nero-bg flex items-center justify-center px-5">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-[1.75rem] border border-nero-border bg-nero-surface p-8 text-center shadow-[0_24px_70px_-56px_rgba(41,35,30,0.45)]">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-nero-accent border-t-transparent" />
+          <p className="text-sm font-bold text-nero-text">Joining the party...</p>
+          <p className="text-sm text-nero-muted">Connecting to the shared room and syncing the queue.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-nero-bg text-nero-text flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-nero-border shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold tracking-tighter">
-            <span className="text-nero-accent">nero</span>party
-          </h1>
-          <span className="text-nero-dim">|</span>
-          <span className="text-nero-text font-medium">{party.name}</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-nero-muted">
-          <span className="px-2 py-1 rounded bg-nero-surface text-xs uppercase tracking-wider">
-            {party.status}
-          </span>
-          {isHost && (
-            <button
-              onClick={() => {
-                if (confirm('End the party and reveal the winner?')) {
-                  socket.emit('end-party');
-                }
-              }}
-              className="px-3 py-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600/40 hover:text-red-300 text-xs font-medium transition-colors"
-            >
-              End Party
-            </button>
-          )}
+    <div className="min-h-[100dvh] bg-nero-bg text-nero-text">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_8%,rgba(217,85,56,0.12),transparent_34%),radial-gradient(circle_at_92%_2%,rgba(15,118,110,0.16),transparent_30%),linear-gradient(180deg,#fff9f2_0%,#fffdf8_58%,#f5eadb_100%)]" />
+
+      <header className="relative z-30 px-3 pb-2 pt-3 sm:px-6">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 rounded-xl border border-white/75 bg-white/74 px-3 py-2.5 shadow-[0_22px_70px_-58px_rgba(36,31,27,0.58)] shadow-nero-accent/5 backdrop-blur-2xl sm:px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-nero-text text-sm font-black tracking-tight text-white shadow-[0_14px_34px_-26px_rgba(36,31,27,0.75)]">
+              np
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate text-sm font-black tracking-tight sm:text-base">
+                  {party.name}
+                </h1>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${isConnected ? 'bg-nero-secondary' : 'bg-nero-dim'}`} />
+              </div>
+              <p className="mt-0.5 truncate text-xs font-bold uppercase tracking-[0.16em] text-nero-muted">
+                {isConnected ? 'Live listening room' : 'Reconnecting'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="rounded-md border border-nero-border/80 bg-nero-bg/80 px-3 py-2 text-xs font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:px-4 sm:text-sm">
+              <span className="hidden text-nero-muted sm:inline">Code</span>
+              <span className="ml-0 font-mono tracking-[0.18em] text-nero-accent sm:ml-2">{party.code}</span>
+            </div>
+            <div className="hidden rounded-md border border-nero-border/80 bg-nero-bg/80 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-nero-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:block">
+              {isHost ? 'Host' : 'Guest'}
+            </div>
+            {isHost && (
+              <button
+                onClick={() => {
+                  if (confirm('End the party and reveal the winner?')) {
+                    socket.emit('end-party');
+                  }
+                }}
+                className="rounded-md bg-nero-text px-4 py-2 text-sm font-bold text-white shadow-[0_12px_30px_-24px_rgba(36,31,27,0.7)] transition-[background-color,transform] duration-150 ease-[var(--ease-ui)] hover:bg-[#362f29] active:scale-[0.97]"
+              >
+                End
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main content area */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-0 overflow-hidden">
-        {/* Left panel — scrollable */}
-        <div className="flex flex-col gap-4 p-4 overflow-y-auto min-h-0">
-          <Player />
-          <Queue />
-          <SongSearch />
-        </div>
-
-        {/* Right panel */}
-        <div className="hidden lg:flex flex-col border-l border-nero-border min-h-0 overflow-hidden">
-          <div className="p-4 border-b border-nero-border shrink-0">
-            <Participants />
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <ChatFeed />
-          </div>
-          <div className="p-4 border-t border-nero-border shrink-0">
+      <main className="relative mx-auto grid max-w-[1600px] gap-4 px-4 pb-4 pt-5 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)_340px] xl:grid-cols-[270px_minmax(0,1fr)_380px]">
+        <aside className="order-2 space-y-4 lg:order-1">
+          <section className="rounded-xl border border-white/80 bg-white/80 p-4 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-nero-muted">Room code</p>
+                <p className="mt-1 font-mono text-2xl font-black tracking-[0.22em] text-nero-accent">{party.code}</p>
+              </div>
+              <span className="rounded-md bg-nero-surface-hover px-3 py-1 text-xs font-bold text-nero-secondary">
+                {party.status}
+              </span>
+            </div>
             <ShareLink />
+          </section>
+
+          <section className="rounded-xl border border-white/80 bg-white/80 p-4 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <Participants />
+          </section>
+
+          <section className="overflow-hidden rounded-xl border border-white/80 bg-white/80 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <SongLeaderboard />
+          </section>
+        </aside>
+
+        <section className="order-1 min-w-0 space-y-4 lg:order-2">
+          <Player />
+
+          <div className="rounded-xl border border-white/80 bg-white/80 p-4 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black tracking-tight">Add a song</h2>
+                <p className="text-sm text-nero-muted">Search YouTube and send the next pick into the room.</p>
+              </div>
+              <span className="hidden rounded-md bg-nero-surface-hover px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-nero-secondary sm:inline">
+                Everyone can add
+              </span>
+            </div>
+            <SongSearch />
+          </div>
+        </section>
+
+        <aside className="order-3 grid min-h-0 gap-4">
+          <section className="min-h-[420px] overflow-hidden rounded-xl border border-white/80 bg-white/80 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <Queue />
+          </section>
+          <section className="min-h-[420px] overflow-hidden rounded-xl border border-white/80 bg-white/80 shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            <ChatFeed />
+          </section>
+        </aside>
+      </main>
+
+      {!isHost && (
+        <div className="relative mx-auto max-w-[1600px] px-4 pb-4 sm:px-6">
+          <div className="rounded-xl border border-white/80 bg-white/72 px-4 py-3 text-sm font-medium text-nero-muted shadow-[0_18px_58px_-52px_rgba(36,31,27,0.42)] backdrop-blur-2xl">
+            The host controls playback. You can add songs, vote, chat, and react.
           </div>
         </div>
-      </div>
+      )}
 
       {/* Error toast */}
       {errorToast && (
