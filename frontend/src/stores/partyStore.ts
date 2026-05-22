@@ -84,6 +84,7 @@ interface PartyStore {
   setLeaderboard: (songs: LeaderboardSongData[]) => void;
   setPendingReaction: (song: { songId: string; title: string; artist: string }) => void;
   clearPendingReaction: () => void;
+  setPlaybackOffset: (offset: number | null) => void;
   setConnected: (connected: boolean) => void;
   setParticipantId: (id: string) => void;
   setClientToken: (token: string) => void;
@@ -112,15 +113,21 @@ export const usePartyStore = create<PartyStore>((set) => ({
   clientToken: getOrCreateClientToken(),
 
   setPartyState: (payload) =>
-    set({
-      party: payload.party,
-      participantId: payload.participantId ?? null,
-      participants: payload.participants,
-      songs: sortSongs(payload.songs),
-      chatMessages: payload.chatMessages,
-      currentSong: payload.currentSong,
-      playbackOffset: payload.playbackOffset,
-      isHost: payload.isHost,
+    set((state) => {
+      // Merge: server state is authoritative, but keep any participants
+      // that arrived via real-time events before this state loaded
+      const serverIds = new Set(payload.participants.map((p: any) => p.id));
+      const earlyArrivals = state.participants.filter((p) => !serverIds.has(p.id));
+      return {
+        party: payload.party,
+        participantId: payload.participantId ?? null,
+        participants: [...payload.participants, ...earlyArrivals],
+        songs: sortSongs(payload.songs),
+        chatMessages: payload.chatMessages,
+        currentSong: payload.currentSong,
+        playbackOffset: payload.playbackOffset,
+        isHost: payload.isHost,
+      };
     }),
 
   addSong: (song) =>
@@ -157,7 +164,9 @@ export const usePartyStore = create<PartyStore>((set) => ({
 
   addParticipant: (p) =>
     set((state) => ({
-      participants: [...state.participants, p],
+      participants: state.participants.some((existing) => existing.id === p.id)
+        ? state.participants
+        : [...state.participants, p],
     })),
 
   removeParticipant: (id) =>
@@ -181,6 +190,9 @@ export const usePartyStore = create<PartyStore>((set) => ({
 
   clearPendingReaction: () =>
     set({ pendingReaction: null }),
+
+  setPlaybackOffset: (offset) =>
+    set({ playbackOffset: offset }),
 
   setConnected: (connected) =>
     set({ isConnected: connected }),

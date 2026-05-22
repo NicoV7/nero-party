@@ -81,6 +81,13 @@ export function setupSocketHandlers(io: Server): void {
       });
     });
 
+    socket.on("playback-sync", ({ currentTime }: { currentTime: number }) => {
+      const sp = socketParticipants.get(socket.id);
+      if (sp) {
+        socket.to(sp.partyCode).emit("playback-sync", { currentTime });
+      }
+    });
+
     socket.on("pause", () => {
       void runSocketHandler(socket, "pause", "Failed to pause", async () => {
         const { socketParticipant } = await getHostSocketContext(socket);

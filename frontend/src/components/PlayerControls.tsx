@@ -118,6 +118,7 @@ export default function PlayerControls({
     const player = playerRef.current;
     if (player && playerReady.current) {
       player.seekTo(val, true);
+      setTimeout(() => socket.emit('playback-sync', { currentTime: val }), 300);
     }
   };
 

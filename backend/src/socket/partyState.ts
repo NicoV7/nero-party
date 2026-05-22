@@ -17,7 +17,7 @@ export async function emitPartyState(
 
   const [participants, songs, chatMessages, leaderboard] = await Promise.all([
     prisma.participant.findMany({
-      where: { partyId: party.id },
+      where: { partyId: party.id, isConnected: true },
       select: { id: true, name: true, avatarColor: true, isConnected: true },
     }),
     prisma.song.findMany({

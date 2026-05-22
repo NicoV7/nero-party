@@ -28,6 +28,7 @@ export default function PartyRoom() {
   const removeParticipant = usePartyStore((s) => s.removeParticipant);
   const setPartyEnded = usePartyStore((s) => s.setPartyEnded);
   const setLeaderboard = usePartyStore((s) => s.setLeaderboard);
+  const setPlaybackOffset = usePartyStore((s) => s.setPlaybackOffset);
   const setConnected = usePartyStore((s) => s.setConnected);
   const isConnected = usePartyStore((s) => s.isConnected);
   const isHost = usePartyStore((s) => s.isHost);
@@ -76,6 +77,7 @@ export default function PartyRoom() {
 
     socket.on('now-playing', (payload: any) => {
       setCurrentSong(payload.song ?? null);
+      setPlaybackOffset(payload.startedAt ? Date.now() - payload.startedAt : 0);
     });
 
     socket.on('song-ended', (data: any) => {

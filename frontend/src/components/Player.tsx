@@ -100,6 +100,13 @@ export default function Player() {
             if (event.data === 0 && usePartyStore.getState().isHost) {
               socket.emit('skip-song');
             }
+            // Host: broadcast position immediately when video starts playing (fast sync for guests)
+            if (event.data === 1 && usePartyStore.getState().isHost) {
+              setTimeout(() => {
+                const ct = playerRef.current?.getCurrentTime?.();
+                if (ct != null) socket.emit('playback-sync', { currentTime: ct });
+              }, 500);
+            }
           },
         },
       });
@@ -139,9 +146,35 @@ export default function Player() {
     };
 
     socket.on('playback-control', handlePlaybackControl);
+
+    // Guest sync: correct drift when host broadcasts position
+    const handlePlaybackSync = (data: { currentTime: number }) => {
+      const player = playerRef.current;
+      if (!player || !playerReady.current || usePartyStore.getState().isHost) return;
+      const local = player.getCurrentTime?.() ?? 0;
+      if (Math.abs(data.currentTime - local) > 1) {
+        player.seekTo(data.currentTime, true);
+      }
+    };
+    socket.on('playback-sync', handlePlaybackSync);
+
     return () => {
       socket.off('playback-control', handlePlaybackControl);
+      socket.off('playback-sync', handlePlaybackSync);
     };
+  }, []);
+
+  // Host broadcasts playback position every 5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const player = playerRef.current;
+      if (!player || !playerReady.current || !usePartyStore.getState().isHost) return;
+      const state = player.getPlayerState?.();
+      if (state === 1) {
+        socket.emit('playback-sync', { currentTime: player.getCurrentTime() });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -162,14 +195,10 @@ export default function Player() {
     if (lastVideoId.current === videoId) return;
 
     lastVideoId.current = videoId;
-    player.loadVideoById(videoId);
+    const startSeconds = offset && offset > 0 ? offset / 1000 : 0;
+    player.loadVideoById({ videoId, startSeconds });
     if (captionsEnabled) {
       player.loadModule?.('captions');
-    }
-    if (offset && offset > 0) {
-      setTimeout(() => {
-        player.seekTo(offset / 1000, true);
-      }, 500);
     }
   }
 
