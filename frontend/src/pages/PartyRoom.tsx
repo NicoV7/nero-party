@@ -85,8 +85,9 @@ export default function PartyRoom() {
       setPlaybackOffset(payload.startedAt ? Date.now() - payload.startedAt : 0);
     });
 
-    socket.on('song-ended', (song: SongData) => {
+    socket.on('song-ended', (data: { song: SongData }) => {
       // Show reaction toast for the song that just ended
+      const song = data.song;
       if (song?.id && song?.title && song?.artist) {
         setPendingReaction({
           songId: song.id,
@@ -124,8 +125,8 @@ export default function PartyRoom() {
       setSongs(songs);
     });
 
-    socket.on('participant-joined', (data: { participant: ParticipantData }) => {
-      addParticipant(data.participant);
+    socket.on('participant-joined', (data: ParticipantData) => {
+      addParticipant(data);
     });
 
     socket.on('participant-left', (data: { participantId: string }) => {
