@@ -1,21 +1,31 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
+import {
+  AVATAR_COLORS,
+  DEFAULT_MAX_SONGS_PER_PERSON,
+  DEFAULT_MAX_USERS,
+  DEFAULT_PARTY_DURATION_MINUTES,
+  MAX_MAX_SONGS_PER_PERSON,
+  MAX_MAX_USERS,
+  MAX_PARTY_DURATION_MINUTES,
+  MIN_MAX_SONGS_PER_PERSON,
+  MIN_MAX_USERS,
+  MIN_PARTY_DURATION_MINUTES,
+  PARTY_CODE_CHARS,
+  PARTY_CODE_LENGTH,
+  PARTY_CODE_MAX_ATTEMPTS,
+} from "../constants/party.js";
+import type { CreatePartyRequest, JoinPartyRequest } from "../dto/party.js";
+import { prisma } from "../models/db.js";
+import { sanitize } from "../services/text.js";
 
-const prisma = new PrismaClient();
 const router = Router();
-
-/** Strip HTML tags from a string. */
-function sanitize(input: string): string {
-  return input.replace(/<[^>]*>/g, "");
-}
 
 /** Generate a random 6-character uppercase alphanumeric code. */
 function generatePartyCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < PARTY_CODE_LENGTH; i++) {
+    code += PARTY_CODE_CHARS.charAt(Math.floor(Math.random() * PARTY_CODE_CHARS.length));
   }
   return code;
 }
@@ -23,7 +33,8 @@ function generatePartyCode(): string {
 // POST /api/parties — Create a new party
 router.post("/", async (req, res) => {
   try {
-    const { name, hostName, maxSongsPerPerson, maxUsers, maxDurationMinutes } = req.body;
+    const { name, hostName, maxSongsPerPerson, maxUsers, maxDurationMinutes } =
+      req.body as CreatePartyRequest;
 
     // Validate name
     if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
@@ -38,23 +49,31 @@ router.post("/", async (req, res) => {
     }
 
     // Validate maxSongsPerPerson
-    const songsPerPerson = maxSongsPerPerson ?? 5;
-    if (typeof songsPerPerson !== "number" || songsPerPerson < 1 || songsPerPerson > 20) {
-      res.status(400).json({ error: "maxSongsPerPerson must be between 1 and 20" });
+    const songsPerPerson = maxSongsPerPerson ?? DEFAULT_MAX_SONGS_PER_PERSON;
+    if (
+      typeof songsPerPerson !== "number" ||
+      songsPerPerson < MIN_MAX_SONGS_PER_PERSON ||
+      songsPerPerson > MAX_MAX_SONGS_PER_PERSON
+    ) {
+      res.status(400).json({ error: `maxSongsPerPerson must be between ${MIN_MAX_SONGS_PER_PERSON} and ${MAX_MAX_SONGS_PER_PERSON}` });
       return;
     }
 
     // Validate maxUsers
-    const userLimit = maxUsers ?? 12;
-    if (typeof userLimit !== "number" || userLimit < 2 || userLimit > 100) {
-      res.status(400).json({ error: "maxUsers must be between 2 and 100" });
+    const userLimit = maxUsers ?? DEFAULT_MAX_USERS;
+    if (typeof userLimit !== "number" || userLimit < MIN_MAX_USERS || userLimit > MAX_MAX_USERS) {
+      res.status(400).json({ error: `maxUsers must be between ${MIN_MAX_USERS} and ${MAX_MAX_USERS}` });
       return;
     }
 
     // Validate maxDurationMinutes
-    const duration = maxDurationMinutes ?? 60;
-    if (typeof duration !== "number" || duration < 5 || duration > 180) {
-      res.status(400).json({ error: "maxDurationMinutes must be between 5 and 180" });
+    const duration = maxDurationMinutes ?? DEFAULT_PARTY_DURATION_MINUTES;
+    if (
+      typeof duration !== "number" ||
+      duration < MIN_PARTY_DURATION_MINUTES ||
+      duration > MAX_PARTY_DURATION_MINUTES
+    ) {
+      res.status(400).json({ error: `maxDurationMinutes must be between ${MIN_PARTY_DURATION_MINUTES} and ${MAX_PARTY_DURATION_MINUTES}` });
       return;
     }
 
@@ -69,9 +88,9 @@ router.post("/", async (req, res) => {
       const existing = await prisma.party.findUnique({ where: { code } });
       if (!existing) break;
       attempts++;
-    } while (attempts < 10);
+    } while (attempts < PARTY_CODE_MAX_ATTEMPTS);
 
-    if (attempts >= 10) {
+    if (attempts >= PARTY_CODE_MAX_ATTEMPTS) {
       res.status(500).json({ error: "Failed to generate a unique party code" });
       return;
     }
@@ -130,7 +149,7 @@ router.get("/:code", async (req, res) => {
 // POST /api/parties/:code/join — Join a party
 router.post("/:code/join", async (req, res) => {
   try {
-    const { name, clientToken } = req.body;
+    const { name, clientToken } = req.body as JoinPartyRequest;
     const code = req.params.code.toUpperCase();
 
     // Validate name
@@ -187,17 +206,7 @@ router.post("/:code/join", async (req, res) => {
     }
 
     // New participant
-    const avatarColors = [
-      "#7c3aed",
-      "#2563eb",
-      "#16a34a",
-      "#ea580c",
-      "#e11d48",
-      "#0891b2",
-      "#c026d3",
-      "#65a30d",
-    ];
-    const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+    const avatarColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 
     const participant = await prisma.participant.create({
       data: {
@@ -215,5 +224,4 @@ router.post("/:code/join", async (req, res) => {
   }
 });
 
-export { prisma };
 export default router;

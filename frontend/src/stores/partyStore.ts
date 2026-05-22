@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { SONG_STATUS_ORDER } from '../constants/party';
 import type {
   SongData,
   ParticipantData,
@@ -16,15 +17,9 @@ function getOrCreateClientToken(): string {
 }
 
 function sortSongs(songs: SongData[]): SongData[] {
-  const statusOrder: Record<string, number> = {
-    playing: 0,
-    queued: 1,
-    played: 2,
-  };
-
   return [...songs].sort((a, b) => {
-    const aOrder = statusOrder[a.status] ?? 1;
-    const bOrder = statusOrder[b.status] ?? 1;
+    const aOrder = SONG_STATUS_ORDER[a.status] ?? 1;
+    const bOrder = SONG_STATUS_ORDER[b.status] ?? 1;
 
     if (aOrder !== bOrder) return aOrder - bOrder;
 
@@ -73,7 +68,6 @@ interface PartyStore {
     totalSongs: number;
     totalParticipants: number;
     totalReactions: number;
-    aiPicks: number;
   } | null;
 
   // Actions

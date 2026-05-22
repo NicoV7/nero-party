@@ -1,3 +1,8 @@
+import {
+  DEFAULT_YOUTUBE_SEARCH_RESULTS,
+  YOUTUBE_SEARCH_RESULT_BUFFER,
+  YOUTUBE_SINGLE_RESULT_COUNT,
+} from "../constants/youtube.js";
 import { env } from "../env.js";
 
 export interface YouTubeResult {
@@ -22,7 +27,7 @@ export async function searchSong(
     q: `${title} ${artist} official audio`,
     type: "video",
     videoCategoryId: "10",
-    maxResults: "1",
+    maxResults: YOUTUBE_SINGLE_RESULT_COUNT,
     key: env.YOUTUBE_API_KEY,
   });
 
@@ -59,7 +64,7 @@ export async function searchSong(
 
 export async function searchQuery(
   query: string,
-  maxResults = 5
+  maxResults = DEFAULT_YOUTUBE_SEARCH_RESULTS
 ): Promise<YouTubeResult[]> {
   if (!env.YOUTUBE_API_KEY) {
     throw new Error(
@@ -72,7 +77,7 @@ export async function searchQuery(
     q: `${query} song`,
     type: "video",
     videoCategoryId: "10",
-    maxResults: String(maxResults + 3),
+    maxResults: String(maxResults + YOUTUBE_SEARCH_RESULT_BUFFER),
     key: env.YOUTUBE_API_KEY,
   });
 
@@ -113,20 +118,4 @@ export async function searchQuery(
     artist: item.snippet.channelTitle,
     thumbnailUrl: item.snippet.thumbnails.high.url,
   }));
-}
-
-export async function searchMultipleSongs(
-  songs: Array<{ title: string; artist: string }>
-): Promise<YouTubeResult[]> {
-  const results = await Promise.allSettled(
-    songs.map((song) => searchSong(song.title, song.artist))
-  );
-
-  return results
-    .filter(
-      (result): result is PromiseFulfilledResult<YouTubeResult | null> =>
-        result.status === "fulfilled"
-    )
-    .map((result) => result.value)
-    .filter((value): value is YouTubeResult => value !== null);
 }

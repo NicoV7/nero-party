@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
-import { API_URL } from '../lib/api';
+import { API_URL } from '../constants/api';
 
 interface SearchResult {
   videoId: string;

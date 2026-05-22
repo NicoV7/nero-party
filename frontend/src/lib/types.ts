@@ -7,10 +7,6 @@ export interface AddSongPayload {
   thumbnailUrl: string;
 }
 
-export interface AiSuggestPayload {
-  prompt: string;
-}
-
 export interface VotePayload {
   songId: string;
   value: 1 | -1;
@@ -26,11 +22,6 @@ export interface ReactionPayload {
 
 // ─── Server → Client Payloads ────────────────────────────────────────────────
 
-export interface VibeCard {
-  reading: string;
-  emoji: string;
-}
-
 export interface SongData {
   id: string;
   youtubeVideoId: string;
@@ -39,8 +30,6 @@ export interface SongData {
   thumbnailUrl: string;
   addedById: string | null;
   addedByName: string;
-  addedByAI: boolean;
-  aiPrompt: string | null;
   position: number;
   status: string;
   netVotes: number;
@@ -64,13 +53,8 @@ export interface ChatMessageData {
   id: string;
   participantName: string | null;
   content: string;
-  type: 'chat' | 'system' | 'ai-vibe-card' | 'reaction';
+  type: 'chat' | 'system' | 'reaction';
   createdAt: string;
-}
-
-export interface AiResponsePayload {
-  vibeCard: VibeCard;
-  songs: SongData[];
 }
 
 export interface PartyStatePayload {
@@ -104,7 +88,6 @@ export interface PartyEndedPayload {
     totalSongs: number;
     totalParticipants: number;
     totalReactions: number;
-    aiPicks: number;
   };
 }
 
@@ -133,7 +116,6 @@ export interface ErrorPayload {
 
 export interface ClientToServerEvents {
   'add-song': (payload: AddSongPayload) => void;
-  'ai-suggest': (payload: AiSuggestPayload) => void;
   'vote': (payload: VotePayload) => void;
   'chat-message': (payload: ChatMessagePayload) => void;
   'reaction': (payload: ReactionPayload) => void;
@@ -147,7 +129,6 @@ export interface ServerToClientEvents {
   'party-state': (payload: PartyStatePayload) => void;
   'leaderboard-updated': (payload: LeaderboardSongData[]) => void;
   'song-added': (payload: SongAddedPayload) => void;
-  'ai-response': (payload: AiResponsePayload) => void;
   'vote-updated': (payload: VoteUpdatedPayload) => void;
   'now-playing': (payload: NowPlayingPayload) => void;
   'chat-message': (payload: ChatMessageData) => void;
@@ -189,4 +170,5 @@ export interface PartyInfoResponse {
   hostName: string;
   status: string;
   participantCount: number;
+  maxUsers: number;
 }

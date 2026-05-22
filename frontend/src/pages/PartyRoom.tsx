@@ -74,25 +74,6 @@ export default function PartyRoom() {
       addSong(song);
     });
 
-    socket.on('ai-response', (payload: any) => {
-      // Add each song from AI
-      if (payload.songs && Array.isArray(payload.songs)) {
-        for (const song of payload.songs) {
-          addSong(song);
-        }
-      }
-      // Add vibe card as a chat message
-      if (payload.vibeCard) {
-        addChatMessage({
-          id: `ai-vibe-${Date.now()}`,
-          participantName: null,
-          content: typeof payload.vibeCard === 'string' ? payload.vibeCard : payload.vibeCard.reading,
-          type: 'ai-vibe-card',
-          createdAt: new Date().toISOString(),
-        });
-      }
-    });
-
     socket.on('now-playing', (payload: any) => {
       setCurrentSong(payload.song ?? null);
     });
@@ -171,7 +152,6 @@ export default function PartyRoom() {
       socket.off('party-state');
       socket.off('leaderboard-updated');
       socket.off('song-added');
-      socket.off('ai-response');
       socket.off('now-playing');
       socket.off('song-ended');
       socket.off('reaction-saved');

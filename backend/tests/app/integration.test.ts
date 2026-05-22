@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import express from "express";
 import request from "supertest";
-import { prisma } from "../src/routes/parties.js";
+import { prisma } from "../../src/models/db.js";
 
 // ---------------------------------------------------------------------------
 // 1. YouTube search proxy tests (via Express route)
@@ -28,7 +28,7 @@ describe("YouTube search proxy (/api/search)", () => {
    */
   async function buildApp() {
     const { default: searchRouter } = await import(
-      "../src/routes/search.js"
+      "../../src/routing/search.js"
     );
     const a = express();
     a.use(express.json());
@@ -39,12 +39,9 @@ describe("YouTube search proxy (/api/search)", () => {
   // --- Test 1: success -------------------------------------------------
   it("returns YouTube results with correct shape on success", async () => {
     // Mock env to have a key
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "fake-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -99,12 +96,9 @@ describe("YouTube search proxy (/api/search)", () => {
 
   // --- Test 2: 403 error -----------------------------------------------
   it("returns error mentioning 'YouTube Data API v3 is not enabled' on 403", async () => {
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "bad-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -124,12 +118,9 @@ describe("YouTube search proxy (/api/search)", () => {
 
   // --- Test 3: empty API key -------------------------------------------
   it("returns error mentioning 'not configured' when YOUTUBE_API_KEY is empty", async () => {
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -143,12 +134,9 @@ describe("YouTube search proxy (/api/search)", () => {
 
   // --- Test 4: no query param ------------------------------------------
   it("returns 400 when q parameter is missing", async () => {
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "fake-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -162,12 +150,9 @@ describe("YouTube search proxy (/api/search)", () => {
 
   // --- Test 5: XSS in query --------------------------------------------
   it("handles XSS in query safely (no injection in response)", async () => {
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "fake-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -206,7 +191,7 @@ describe("YouTube search proxy (/api/search)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. YouTube service unit tests (searchSong, searchMultipleSongs)
+// 2. YouTube service unit tests
 // ---------------------------------------------------------------------------
 
 describe("YouTube service", () => {
@@ -224,12 +209,9 @@ describe("YouTube service", () => {
 
   // --- Test 6: searchSong returns null on no results --------------------
   it("searchSong returns null when YouTube returns empty items", async () => {
-    vi.doMock("../src/env.js", () => ({
+    vi.doMock("../../src/env.js", () => ({
       env: {
         YOUTUBE_API_KEY: "fake-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
       },
     }));
 
@@ -238,226 +220,16 @@ describe("YouTube service", () => {
       json: async () => ({ items: [] }),
     } as any);
 
-    const { searchSong } = await import("../src/services/youtube.js");
+    const { searchSong } = await import("../../src/services/youtube.js");
     const result = await searchSong("Nonexistent Song", "Nobody");
 
     expect(result).toBeNull();
   });
 
-  // --- Test 7: searchMultipleSongs handles partial failures -------------
-  it("searchMultipleSongs returns results only for successful searches", async () => {
-    vi.doMock("../src/env.js", () => ({
-      env: {
-        YOUTUBE_API_KEY: "fake-key",
-        GEMINI_API_KEY: "",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
-      },
-    }));
-
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      const urlStr = String(url);
-      // Song B searches will get a 500 error
-      if (urlStr.includes("Song+B") || urlStr.includes("Song%20B")) {
-        return {
-          ok: false,
-          status: 500,
-          statusText: "Internal Server Error",
-        } as any;
-      }
-      // All other songs succeed
-      const qMatch = urlStr.match(/q=([^&]+)/);
-      const label = qMatch ? decodeURIComponent(qMatch[1]).slice(0, 6) : "unknown";
-      return {
-        ok: true,
-        json: async () => ({
-          items: [
-            {
-              id: { videoId: `vid-${label}` },
-              snippet: {
-                title: label,
-                thumbnails: { high: { url: `https://img.youtube.com/vi/${label}/hq.jpg` } },
-              },
-            },
-          ],
-        }),
-      } as any;
-    });
-
-    const { searchMultipleSongs } = await import(
-      "../src/services/youtube.js"
-    );
-
-    const results = await searchMultipleSongs([
-      { title: "Song A", artist: "Artist A" },
-      { title: "Song B", artist: "Artist B" },
-      { title: "Song C", artist: "Artist C" },
-    ]);
-
-    // Only 2 should succeed (Song A and Song C); Song B threw an error
-    expect(results.length).toBe(2);
-    // Verify the failed song (Song B) is not in results
-    const videoIds = results.map((r) => r.videoId);
-    expect(videoIds).not.toContain(expect.stringContaining("Song+B"));
-    expect(results.length).toBe(2);
-  });
 });
 
 // ---------------------------------------------------------------------------
-// 3. AI service tests (suggestSongs)
-// ---------------------------------------------------------------------------
-
-describe("AI service (suggestSongs)", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  // --- Test 8: valid Gemini response ------------------------------------
-  it("suggestSongs parses a well-formed Gemini response", async () => {
-    const validResponse = {
-      reading: "chill summer vibes with mellow beats",
-      songs: [
-        { title: "Summertime Magic", artist: "Childish Gambino" },
-        { title: "Electric Feel", artist: "MGMT" },
-        { title: "Sun Is Shining", artist: "Bob Marley" },
-      ],
-    };
-
-    vi.doMock("../src/env.js", () => ({
-      env: {
-        YOUTUBE_API_KEY: "",
-        GEMINI_API_KEY: "fake-gemini-key",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
-      },
-    }));
-
-    vi.doMock("@google/generative-ai", () => ({
-      GoogleGenerativeAI: class {
-        getGenerativeModel() {
-          return {
-            generateContent: async () => ({
-              response: {
-                text: () => JSON.stringify(validResponse),
-              },
-            }),
-          };
-        }
-      },
-    }));
-
-    const { suggestSongs } = await import("../src/services/ai.js");
-    const result = await suggestSongs("summer party vibes");
-
-    expect(result).toHaveProperty("reading");
-    expect(result).toHaveProperty("songs");
-    expect(typeof result.reading).toBe("string");
-    expect(result.reading).toBe("chill summer vibes with mellow beats");
-    expect(Array.isArray(result.songs)).toBe(true);
-    expect(result.songs.length).toBe(3);
-
-    for (const song of result.songs) {
-      expect(song).toHaveProperty("title");
-      expect(song).toHaveProperty("artist");
-      expect(typeof song.title).toBe("string");
-      expect(typeof song.artist).toBe("string");
-    }
-  });
-
-  // --- Test 9: malformed JSON with markdown code blocks (recovery) ------
-  it("suggestSongs recovers JSON wrapped in markdown code blocks", async () => {
-    const innerJson = {
-      reading: "nostalgic 90s dance floor energy",
-      songs: [
-        { title: "Everybody", artist: "Backstreet Boys" },
-        { title: "No Scrubs", artist: "TLC" },
-        { title: "MMMBop", artist: "Hanson" },
-      ],
-    };
-
-    // Wrap in markdown code fences like a real LLM might
-    const wrappedResponse = "```json\n" + JSON.stringify(innerJson) + "\n```";
-
-    vi.doMock("../src/env.js", () => ({
-      env: {
-        YOUTUBE_API_KEY: "",
-        GEMINI_API_KEY: "fake-gemini-key",
-        OLLAMA_URL: "",
-        OLLAMA_MODEL: "llama3",
-      },
-    }));
-
-    vi.doMock("@google/generative-ai", () => ({
-      GoogleGenerativeAI: class {
-        getGenerativeModel() {
-          return {
-            generateContent: async () => ({
-              response: {
-                text: () => wrappedResponse,
-              },
-            }),
-          };
-        }
-      },
-    }));
-
-    const { suggestSongs } = await import("../src/services/ai.js");
-    const result = await suggestSongs("90s dance party");
-
-    expect(result.reading).toBe("nostalgic 90s dance floor energy");
-    expect(result.songs.length).toBe(3);
-    expect(result.songs[0].title).toBe("Everybody");
-    expect(result.songs[2].artist).toBe("Hanson");
-  });
-
-  // --- Test 10: complete failure (both Gemini and Ollama fail) ----------
-  it("suggestSongs throws descriptive error when all providers fail", async () => {
-    vi.doMock("../src/env.js", () => ({
-      env: {
-        YOUTUBE_API_KEY: "",
-        GEMINI_API_KEY: "fake-gemini-key",
-        OLLAMA_URL: "http://localhost:11434",
-        OLLAMA_MODEL: "llama3",
-      },
-    }));
-
-    // Mock Gemini to fail
-    vi.doMock("@google/generative-ai", () => ({
-      GoogleGenerativeAI: class {
-        getGenerativeModel() {
-          return {
-            generateContent: async () => {
-              throw new Error("Gemini quota exceeded");
-            },
-          };
-        }
-      },
-    }));
-
-    // Mock fetch (used by Ollama) to fail
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error("Ollama connection refused"));
-
-    try {
-      const { suggestSongs } = await import("../src/services/ai.js");
-
-      await expect(suggestSongs("dark moody night")).rejects.toThrow(
-        /All AI providers failed/
-      );
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. Reaction-based voting (react-to-song) — data model tests
+// 3. Reaction-based voting (react-to-song) — data model tests
 // ---------------------------------------------------------------------------
 
 describe("Reaction-based voting (react-to-song)", () => {

@@ -1,10 +1,8 @@
 import { io, Socket } from "socket.io-client";
 
-import { API_URL } from "./api";
+import { API_URL } from "../constants/api";
 
-const SOCKET_URL = API_URL;
-
-export const socket: Socket = io(SOCKET_URL, {
+export const socket: Socket = io(API_URL, {
   autoConnect: false,
 });
 

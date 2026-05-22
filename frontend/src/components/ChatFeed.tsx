@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
-import { QUICK_REACTIONS, getQuickReaction, type QuickReaction } from './reactionOptions';
+import { QUICK_REACTIONS, getQuickReaction, type QuickReaction } from '../constants/reactions';
 
 export default function ChatFeed() {
   const chatMessages = usePartyStore((s) => s.chatMessages);
@@ -69,20 +69,6 @@ export default function ChatFeed() {
                 <span className="text-sm text-nero-dim italic">
                   {msg.content}
                 </span>
-              </div>
-            );
-          }
-
-          if (msg.type === 'ai-vibe-card') {
-            return (
-              <div
-                key={msg.id}
-                className="rounded-lg border-l-4 border-nero-accent p-3 bg-nero-accent/10"
-              >
-                <span className="text-xs font-semibold text-nero-accent block mb-1">
-                  Vibe note
-                </span>
-                <p className="text-sm text-nero-text">{msg.content}</p>
               </div>
             );
           }

@@ -5,7 +5,7 @@ Nero Party is a lively, sunlit social music interface: warm, candid, tactile, an
 
 Density is Daily App Balanced (5/10): enough structure for hosting and joining, but never dense or dashboard-like. Variance is Offset Asymmetric (7/10): left-led editorial hero layouts, uneven but controlled grids, and large breathable zones. Motion is Fluid CSS with selective scroll choreography (6/10): springy, responsive, and playful without becoming cinematic spectacle.
 
-The product is not AI-led. Any intelligence must be treated as optional utility, never the headline or primary value proposition. The core story is create a room, invite friends, build a shared queue, vote, and crown a winning song.
+The product story is create a room, invite friends, build a shared queue, vote, and crown a winning song. Any secondary utility should stay behind that core flow.
 
 ## 2. Color Palette & Roles
 - **Sunlit Canvas** (#FFF7EC) — Primary page background; warm, lively, and bright without becoming beige-heavy.
@@ -44,4 +44,4 @@ Use spring-like easing and hardware-accelerated properties only: transform and o
 Interactive cards and images can scale gently on hover inside overflow-hidden containers. Avoid animating width, height, top, or left. Respect reduced-motion preferences.
 
 ## 7. Anti-Patterns (Banned)
-No emojis. No Inter. No pure black. No dark nightclub default theme. No AI-first positioning. No purple/blue neon glow. No excessive gradient text. No custom mouse cursors. No overlapping elements. No 3-column equal card feature rows. No generic names like John Doe or Acme. No fake perfect numbers like 99.99%. No AI copywriting cliches like Elevate, Seamless, Unleash, or Next-Gen. No filler UI text such as "Scroll to explore". No broken Unsplash links.
+No emojis. No Inter. No pure black. No dark nightclub default theme. No purple/blue neon glow. No excessive gradient text. No custom mouse cursors. No overlapping elements. No 3-column equal card feature rows. No generic names like John Doe or Acme. No fake perfect numbers like 99.99%. No empty copywriting cliches like Elevate, Seamless, Unleash, or Next-Gen. No filler UI text such as "Scroll to explore". No broken Unsplash links.

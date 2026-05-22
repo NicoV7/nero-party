@@ -1,6 +1,6 @@
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
-import { QUICK_REACTIONS } from './reactionOptions';
+import { QUICK_REACTIONS } from '../constants/reactions';
 
 export default function SongLeaderboard() {
   const leaderboard = usePartyStore((s) => s.leaderboard);

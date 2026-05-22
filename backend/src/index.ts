@@ -3,9 +3,10 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import path from "path";
+import { YOUTUBE_SINGLE_RESULT_COUNT } from "./constants/youtube.js";
 import { env } from "./env.js";
-import partyRouter from "./routes/parties.js";
-import searchRouter from "./routes/search.js";
+import partyRouter from "./routing/parties.js";
+import searchRouter from "./routing/search.js";
 import setupSocketHandlers from "./socket/handlers.js";
 
 const app = express();
@@ -60,7 +61,7 @@ server.listen(env.PORT, () => {
         part: "snippet",
         q: "test",
         type: "video",
-        maxResults: "1",
+        maxResults: YOUTUBE_SINGLE_RESULT_COUNT,
         key: env.YOUTUBE_API_KEY,
       });
       const res = await fetch(
@@ -75,12 +76,6 @@ server.listen(env.PORT, () => {
           `WARNING: YouTube API test returned ${res.status} ${res.statusText}`
         );
       }
-    }
-
-    if (!env.GEMINI_API_KEY) {
-      console.warn(
-        "WARNING: GEMINI_API_KEY is not set. AI features will not work."
-      );
     }
   } catch (_err) {
     // Never crash on startup validation

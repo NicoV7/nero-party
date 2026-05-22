@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Server } from "socket.io";
-import { prisma } from "../src/routes/parties.js";
+import { prisma } from "../../src/models/db.js";
 
 // ---------------------------------------------------------------------------
 // Regression tests for bugs found during eng review (2026-05-21)

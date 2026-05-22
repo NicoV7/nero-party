@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import express from "express";
 import request from "supertest";
-import router, { prisma } from "../src/routes/parties.js";
+import router from "../../src/routing/parties.js";
+import { prisma } from "../../src/models/db.js";
 
 const app = express();
 app.use(express.json());

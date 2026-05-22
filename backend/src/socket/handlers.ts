@@ -1,14 +1,22 @@
 import { Server, Socket } from "socket.io";
-import { prisma } from "../routes/parties.js";
-import { suggestSongs } from "../services/ai.js";
-import { searchMultipleSongs } from "../services/youtube.js";
+import {
+  AVATAR_COLORS,
+  PARTY_TIMER_MS_PER_MINUTE,
+  SONG_STATUS_ORDER,
+} from "../constants/party.js";
+import { VALID_REACTIONS } from "../constants/reactions.js";
+import type { AddSongPayload, JoinRoomPayload } from "../dto/party.js";
+import { prisma } from "../models/db.js";
+import { toSongData, type SongData } from "../models/song.js";
+import { buildFinalResults, buildLeaderboard } from "../services/leaderboard.js";
+import { sanitize } from "../services/text.js";
 
 // ---------------------------------------------------------------------------
 // In-memory state
 // ---------------------------------------------------------------------------
 
 interface PlaybackState {
-  currentSong: any | null;
+  currentSong: SongData | null;
   startedAt: number | null;
   isPlaying: boolean;
 }
@@ -25,94 +33,8 @@ const partyTimers = new Map<string, ReturnType<typeof setTimeout>>();
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Strip HTML tags from a string. */
-function sanitize(input: string): string {
-  return input.replace(/<[^>]*>/g, "");
-}
-
 function kickedKey(partyCode: string, clientToken: string): string {
   return `${partyCode}:${clientToken}`;
-}
-
-/** Map reaction key to its score value. */
-const REACTION_SCORES: Record<string, number> = {
-  fire: 3,
-  heart: 2,
-  meh: 0,
-  thumbsdown: -1,
-};
-
-const VALID_REACTIONS = Object.keys(REACTION_SCORES);
-
-/** Convert a Prisma song (with addedBy relation) to the SongData shape the frontend expects. */
-function toSongData(song: any): any {
-  return {
-    id: song.id,
-    youtubeVideoId: song.youtubeVideoId,
-    title: song.title,
-    artist: song.artist,
-    thumbnailUrl: song.thumbnailUrl,
-    addedById: song.addedBy?.id ?? song.addedById ?? null,
-    addedByName: song.addedBy?.name ?? "Unknown",
-    addedByAI: song.addedByAI ?? false,
-    aiPrompt: song.aiPrompt ?? null,
-    position: song.position,
-    status: song.status,
-    netVotes: 0,
-    totalScore: 0,
-    userVote: null,
-  };
-}
-
-async function buildLeaderboard(partyId: string): Promise<any[]> {
-  const songs = await prisma.song.findMany({
-    where: { partyId },
-    include: {
-      votes: true,
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
-    },
-  });
-
-  const statusOrder: Record<string, number> = { playing: 0, queued: 1, played: 2 };
-
-  return songs
-    .map((song) => {
-      const reactionBreakdown: Record<string, number> = {};
-      let totalScore = 0;
-
-      for (const vote of song.votes) {
-        reactionBreakdown[vote.reaction] = (reactionBreakdown[vote.reaction] || 0) + 1;
-        totalScore += REACTION_SCORES[vote.reaction] ?? 0;
-      }
-
-      return {
-        ...toSongData(song),
-        totalScore,
-        reactionBreakdown,
-        reactionCount: song.votes.length,
-      };
-    })
-    .sort((a, b) => {
-      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-      const statusDiff = (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1);
-      if (statusDiff !== 0) return statusDiff;
-      return a.position - b.position;
-    });
-}
-
-/** Pick a vibe emoji based on keywords in the reading text. */
-function pickVibeEmoji(reading: string): string {
-  const lower = reading.toLowerCase();
-  if (lower.includes("sad") || lower.includes("melanchol")) return "😢";
-  if (lower.includes("chill") || lower.includes("relax")) return "😌";
-  if (lower.includes("hype") || lower.includes("energy") || lower.includes("party")) return "🔥";
-  if (lower.includes("love") || lower.includes("romantic")) return "💕";
-  if (lower.includes("dark") || lower.includes("intense")) return "🖤";
-  if (lower.includes("happy") || lower.includes("joy")) return "😊";
-  if (lower.includes("nostalg")) return "✨";
-  if (lower.includes("summer") || lower.includes("beach")) return "🌊";
-  if (lower.includes("night") || lower.includes("late")) return "🌙";
-  return "🎵";
 }
 
 // ---------------------------------------------------------------------------
@@ -200,35 +122,8 @@ async function endParty(io: Server, partyCode: string): Promise<void> {
     partyTimers.delete(partyCode);
   }
 
-  // Find the winner using reaction scores
-  const allSongs = await prisma.song.findMany({
-    where: { partyId: party.id },
-    include: {
-      votes: true,
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
-    },
-  });
-
-  let winner = null;
-  const songResults: any[] = [];
-  if (allSongs.length > 0) {
-    for (const song of allSongs) {
-      const reactionBreakdown: Record<string, number> = {};
-      let totalScore = 0;
-      for (const vote of song.votes) {
-        const emoji = vote.reaction;
-        reactionBreakdown[emoji] = (reactionBreakdown[emoji] || 0) + 1;
-        totalScore += REACTION_SCORES[emoji] ?? 0;
-      }
-      songResults.push({
-        ...toSongData(song),
-        totalScore,
-        reactionBreakdown,
-      });
-    }
-    songResults.sort((a, b) => b.totalScore - a.totalScore || a.position - b.position);
-    winner = songResults[0];
-  }
+  const songResults = await buildFinalResults(party.id);
+  const winner = songResults[0] ?? null;
 
   // Compute stats
   const totalSongs = await prisma.song.count({ where: { partyId: party.id } });
@@ -236,14 +131,11 @@ async function endParty(io: Server, partyCode: string): Promise<void> {
   const totalReactions = await prisma.vote.count({
     where: { song: { partyId: party.id } },
   });
-  const aiPicks = await prisma.song.count({
-    where: { partyId: party.id, addedByAI: true },
-  });
 
   io.to(partyCode).emit("party-ended", {
     winner,
     songResults,
-    stats: { totalSongs, totalParticipants, totalReactions, aiPicks },
+    stats: { totalSongs, totalParticipants, totalReactions },
   });
 
   // Clean up in-memory state
@@ -257,7 +149,7 @@ async function endParty(io: Server, partyCode: string): Promise<void> {
 async function startPlayback(
   io: Server,
   partyCode: string,
-  song: any
+  song: SongData
 ): Promise<void> {
   const party = await prisma.party.findUnique({ where: { code: partyCode } });
   if (!party) return;
@@ -287,7 +179,7 @@ async function startPlayback(
       data: { status: "active" },
     });
 
-    const timeoutMs = party.maxDurationMinutes * 60 * 1000;
+    const timeoutMs = party.maxDurationMinutes * PARTY_TIMER_MS_PER_MINUTE;
     const timer = setTimeout(() => {
       endParty(io, partyCode);
     }, timeoutMs);
@@ -306,7 +198,7 @@ export function setupSocketHandlers(io: Server): void {
     // -----------------------------------------------------------------------
     // join-room
     // -----------------------------------------------------------------------
-    socket.on("join-room", async ({ partyCode, clientToken }: { partyCode: string; clientToken: string }) => {
+    socket.on("join-room", async ({ partyCode, clientToken }: JoinRoomPayload) => {
       try {
         const party = await prisma.party.findUnique({ where: { code: partyCode } });
         if (!party) {
@@ -326,7 +218,6 @@ export function setupSocketHandlers(io: Server): void {
 
         // Auto-create participant if not found (handles host flow and direct link joins)
         if (!participant) {
-          const AVATAR_COLORS = ["#7c3aed", "#2563eb", "#16a34a", "#ea580c", "#e11d48", "#0891b2", "#c026d3", "#65a30d"];
           const isHost = party.hostToken === clientToken;
 
           if (!isHost) {
@@ -383,9 +274,8 @@ export function setupSocketHandlers(io: Server): void {
         const songData = songs.map((song) => toSongData(song));
 
         // Sort: playing first, then queued (by position ASC / FIFO), then played
-        const statusOrder: Record<string, number> = { playing: 0, queued: 1, played: 2 };
         songData.sort((a, b) => {
-          const orderDiff = (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1);
+          const orderDiff = (SONG_STATUS_ORDER[a.status] ?? 1) - (SONG_STATUS_ORDER[b.status] ?? 1);
           if (orderDiff !== 0) return orderDiff;
           return a.position - b.position;
         });
@@ -450,12 +340,7 @@ export function setupSocketHandlers(io: Server): void {
         title,
         artist,
         thumbnailUrl,
-      }: {
-        youtubeVideoId: string;
-        title: string;
-        artist: string;
-        thumbnailUrl: string;
-      }) => {
+      }: AddSongPayload) => {
         try {
           const sp = socketParticipants.get(socket.id);
           if (!sp) {
@@ -544,113 +429,6 @@ export function setupSocketHandlers(io: Server): void {
         }
       }
     );
-
-    // -----------------------------------------------------------------------
-    // ai-suggest
-    // -----------------------------------------------------------------------
-    socket.on("ai-suggest", async ({ prompt }: { prompt: string }) => {
-      try {
-        const sp = socketParticipants.get(socket.id);
-        if (!sp) {
-          socket.emit("error", { message: "Not in a room" });
-          return;
-        }
-
-        // Validate prompt
-        if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0 || prompt.length > 500) {
-          socket.emit("error", { message: "Prompt must be a non-empty string (max 500 chars)" });
-          return;
-        }
-
-        const party = await prisma.party.findUnique({ where: { code: sp.partyCode } });
-        if (!party) return;
-
-        // Check remaining song slots (AI adds 3)
-        const songCount = await prisma.song.count({
-          where: { partyId: party.id, addedById: sp.participantId },
-        });
-        const remaining = party.maxSongsPerPerson - songCount;
-        if (remaining < 3) {
-          socket.emit("error", {
-            message: `You need at least 3 remaining song slots for AI suggestions (you have ${remaining})`,
-          });
-          return;
-        }
-
-        // Call AI
-        const suggestion = await suggestSongs(prompt.trim());
-
-        // Search YouTube for each suggestion
-        const youtubeResults = await searchMultipleSongs(suggestion.songs);
-
-        // Get next position
-        const maxPos = await prisma.song.aggregate({
-          where: { partyId: party.id },
-          _max: { position: true },
-        });
-        let nextPosition = (maxPos._max.position ?? -1) + 1;
-
-        // Create songs in DB
-        const createdSongs = [];
-        for (const result of youtubeResults) {
-          const song = await prisma.song.create({
-            data: {
-              partyId: party.id,
-              youtubeVideoId: result.videoId,
-              title: result.title,
-              artist: result.artist,
-              thumbnailUrl: result.thumbnailUrl,
-              addedById: sp.participantId,
-              addedByAI: true,
-              aiPrompt: prompt.trim(),
-              position: nextPosition++,
-            },
-            include: {
-              addedBy: { select: { id: true, name: true, avatarColor: true } },
-            },
-          });
-
-          createdSongs.push(toSongData(song));
-        }
-
-        // Build vibe card
-        const emoji = pickVibeEmoji(suggestion.reading);
-        const vibeCard = `${emoji} ${suggestion.reading}`;
-
-        io.to(sp.partyCode).emit("ai-response", {
-          vibeCard,
-          songs: createdSongs,
-        });
-        io.to(sp.partyCode).emit("leaderboard-updated", await buildLeaderboard(party.id));
-
-        // Create AI vibe-card chat message
-        const aiMsg = await prisma.chatMessage.create({
-          data: {
-            partyId: party.id,
-            content: suggestion.reading,
-            type: "ai-vibe-card",
-          },
-        });
-        io.to(sp.partyCode).emit("chat-message", {
-          id: aiMsg.id,
-          participantName: null,
-          content: aiMsg.content,
-          type: aiMsg.type,
-          createdAt: aiMsg.createdAt.toISOString(),
-        });
-
-        // Auto-start playback if nothing is playing and we have songs
-        const roomState = rooms.get(sp.partyCode);
-        if ((!roomState || roomState.currentSong === null) && createdSongs.length > 0) {
-          await startPlayback(io, sp.partyCode, createdSongs[0]);
-        }
-      } catch (error) {
-        console.error("Error in ai-suggest:", error);
-        socket.emit("error", {
-          message: "AI couldn't suggest songs right now. Try searching manually!",
-        });
-      }
-    });
 
     // -----------------------------------------------------------------------
     // react-to-song (replaces vote — reactions are private until party end)

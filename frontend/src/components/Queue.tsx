@@ -157,8 +157,6 @@ interface SongItem {
   artist: string;
   thumbnailUrl: string;
   addedByName: string;
-  addedByAI: boolean;
-  aiPrompt: string | null;
 }
 
 function SortableQueueItem({
@@ -236,9 +234,7 @@ function SortableQueueItem({
         <p className="text-sm font-medium text-nero-text truncate leading-snug">{song.title}</p>
         <p className="text-xs text-nero-muted truncate">{song.artist}</p>
         <p className="text-xs text-nero-dim truncate mt-0.5">
-          {song.addedByAI
-            ? `Suggested from "${song.aiPrompt ?? 'vibes'}"`
-            : `Added by ${song.addedByName}`}
+          Added by {song.addedByName}
         </p>
       </div>
     </div>
@@ -299,9 +295,7 @@ function QueueItem({
         <p className="text-sm font-medium text-nero-text truncate leading-snug">{song.title}</p>
         <p className="text-xs text-nero-muted truncate">{song.artist}</p>
         <p className="text-xs text-nero-dim truncate mt-0.5">
-          {song.addedByAI
-            ? `Suggested from "${song.aiPrompt ?? 'vibes'}"`
-            : `Added by ${song.addedByName}`}
+          Added by {song.addedByName}
         </p>
       </div>
     </div>

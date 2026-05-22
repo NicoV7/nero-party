@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SONG_REACTION_TOAST_DISMISS_MS } from '../constants/player';
+import { QUICK_REACTIONS } from '../constants/reactions';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
-import { QUICK_REACTIONS } from './reactionOptions';
-
-const DISMISS_TIMEOUT = 10_000; // 10 seconds
 
 export default function SongReactionToast() {
   const pendingReaction = usePartyStore((s) => s.pendingReaction);
@@ -26,7 +25,7 @@ export default function SongReactionToast() {
       requestAnimationFrame(() => setVisible(true));
       timerRef.current = setTimeout(() => {
         dismiss();
-      }, DISMISS_TIMEOUT);
+      }, SONG_REACTION_TOAST_DISMISS_MS);
     }
 
     return () => {
@@ -89,7 +88,7 @@ export default function SongReactionToast() {
         <div className="h-1 bg-nero-surface">
           <div
             className={`h-full origin-left bg-nero-accent transition-transform ease-linear ${visible ? 'scale-x-0' : 'scale-x-100'}`}
-            style={{ transitionDuration: `${DISMISS_TIMEOUT}ms` }}
+            style={{ transitionDuration: `${SONG_REACTION_TOAST_DISMISS_MS}ms` }}
           />
         </div>
       </div>

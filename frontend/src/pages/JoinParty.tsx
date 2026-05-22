@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePartyStore } from "../stores/partyStore";
-import { API_URL } from "../lib/api";
+import { API_URL } from "../constants/api";
 
 interface PartyInfo {
   name: string;

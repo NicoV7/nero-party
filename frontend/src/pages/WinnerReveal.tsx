@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { QUICK_REACTIONS } from '../components/reactionOptions';
+import { QUICK_REACTIONS } from '../constants/reactions';
 import { usePartyStore } from '../stores/partyStore';
 
 const TrophyIcon = () => (
@@ -231,7 +231,6 @@ export default function WinnerReveal() {
                 { value: stats.totalSongs, label: 'Songs played' },
                 { value: stats.totalParticipants, label: 'People joined' },
                 { value: stats.totalReactions, label: 'Votes cast' },
-                { value: stats.aiPicks, label: 'Suggested picks' },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between rounded-[1.25rem] bg-[#fff8ef] px-4 py-3">
                   <span className="text-sm font-semibold text-[#6f6258]">{stat.label}</span>

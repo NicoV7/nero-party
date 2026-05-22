@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePartyStore } from "../stores/partyStore";
-import { API_URL } from "../lib/api";
+import { API_URL } from "../constants/api";
 
 type CreateForm = {
   partyName: string;

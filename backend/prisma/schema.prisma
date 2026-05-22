@@ -47,8 +47,6 @@ model Song {
   artist         String
   thumbnailUrl   String
   addedById      String
-  addedByAI      Boolean   @default(false)
-  aiPrompt       String?
   position       Int
   playedAt       DateTime?
   status         String    @default("queued")
