@@ -12,26 +12,7 @@ Nero Party is a shared listening room where friends create a party, add music vi
 
 The app boots without a YouTube key, but YouTube search will return a configuration error until `YOUTUBE_API_KEY` is set.
 
-### One-Command Local Boot
-
-```bash
-npm install
-npm run dev:local
-```
-
-`npm run dev:local` does the local setup work before starting the app:
-
-- Creates `.env` from `.env.example` if missing
-- Creates `frontend/.env` from `frontend/.env.example` if missing
-- Pushes the Prisma schema to the local SQLite database
-- Starts the backend and frontend dev servers
-
-When it is running, open:
-
-- Frontend: `http://localhost:5173`
-- Backend health check: `http://localhost:3000/health`
-
-### Manual Setup
+### Quick Start
 
 ```bash
 npm install
@@ -41,24 +22,30 @@ npm --prefix backend run prisma:push
 npm run dev
 ```
 
-Edit `.env` and set:
+### API Keys
+
+The app requires a **Google API key** with YouTube Data API v3 enabled. To get one:
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a project (or select an existing one)
+3. Enable the [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com)
+4. Create an API key under **Credentials**
+5. Paste it in `.env`:
 
 ```bash
-PORT=3000
-YOUTUBE_API_KEY=your_google_api_key_here
-CORS_ORIGIN=http://localhost:5173
+YOUTUBE_API_KEY=your_key_here
 ```
 
-`frontend/.env` is only needed when overriding the backend URL:
+The app boots without this key, but song search will not work until it's set.
 
-```bash
-VITE_API_URL=http://localhost:3000
-```
+When running, open:
+
+- Frontend: `http://localhost:5173`
+- Backend health check: `http://localhost:3000/health`
 
 ## Scripts
 
 ```bash
-npm run dev:local        # prepare local env/db, then run both servers
 npm run dev              # run backend and frontend together
 npm run dev:backend      # backend only
 npm run dev:frontend     # frontend only
