@@ -2,6 +2,33 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
 import PlayerControls from './PlayerControls';
+import {
+  PLAYBACK_SYNC_INTERVAL_MS,
+  PLAYBACK_DRIFT_THRESHOLD_S,
+  AUTOPLAY_DELAY_MS,
+  HOST_SYNC_DELAY_MS,
+} from '../constants/player';
+
+export interface YTPlayer {
+  loadVideoById(params: { videoId: string; startSeconds?: number }): void;
+  playVideo(): void;
+  pauseVideo(): void;
+  stopVideo(): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
+  getCurrentTime(): number;
+  getDuration(): number;
+  getPlayerState(): number;
+  setVolume(volume: number): void;
+  getVolume(): number;
+  mute(): void;
+  unMute(): void;
+  isMuted(): boolean;
+  setPlaybackRate(rate: number): void;
+  setPlaybackQuality(quality: string): void;
+  getAvailableQualityLevels(): string[];
+  loadModule(module: string): void;
+  unloadModule(module: string): void;
+}
 
 declare global {
   interface Window {
@@ -39,7 +66,7 @@ function loadYouTubeAPI(): Promise<void> {
 export default function Player() {
   const videoShellRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
   const playerReady = useRef(false);
   const lastVideoId = useRef<string | null>(null);
 
@@ -105,7 +132,7 @@ export default function Player() {
               setTimeout(() => {
                 const ct = playerRef.current?.getCurrentTime?.();
                 if (ct != null) socket.emit('playback-sync', { currentTime: ct });
-              }, 500);
+              }, HOST_SYNC_DELAY_MS);
             }
           },
         },
@@ -152,7 +179,7 @@ export default function Player() {
       const player = playerRef.current;
       if (!player || !playerReady.current || usePartyStore.getState().isHost) return;
       const local = player.getCurrentTime?.() ?? 0;
-      if (Math.abs(data.currentTime - local) > 1) {
+      if (Math.abs(data.currentTime - local) > PLAYBACK_DRIFT_THRESHOLD_S) {
         player.seekTo(data.currentTime, true);
       }
     };
@@ -173,7 +200,7 @@ export default function Player() {
       if (state === 1) {
         socket.emit('playback-sync', { currentTime: player.getCurrentTime() });
       }
-    }, 2000);
+    }, PLAYBACK_SYNC_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -198,7 +225,7 @@ export default function Player() {
     const startSeconds = offset && offset > 0 ? offset / 1000 : 0;
     player.loadVideoById({ videoId, startSeconds });
     // Ensure autoplay even if Chrome's policy paused it
-    setTimeout(() => player.playVideo?.(), 500);
+    setTimeout(() => player.playVideo?.(), AUTOPLAY_DELAY_MS);
     if (captionsEnabled) {
       player.loadModule?.('captions');
     }

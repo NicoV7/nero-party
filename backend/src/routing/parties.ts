@@ -20,7 +20,7 @@ import {
 import type { CreatePartyRequest, JoinPartyRequest } from "../dto/party.js";
 import { routeHandler, sendHttpError } from "../exceptions/http.js";
 import { prisma } from "../models/db.js";
-import { sanitize } from "../services/text.js";
+import { isBlankString, sanitize } from "../services/text.js";
 
 const router = Router();
 
@@ -56,13 +56,13 @@ async function createParty(req: Request, res: Response): Promise<void> {
     req.body as CreatePartyRequest;
 
   // Validate name
-  if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 100) {
+  if (isBlankString(name) || typeof name !== "string" || name.trim().length > 100) {
     sendHttpError(res, 400, "name is required and must be 1-100 characters");
     return;
   }
 
   // Validate hostName
-  if (!hostName || typeof hostName !== "string" || hostName.trim().length === 0 || hostName.trim().length > 50) {
+  if (isBlankString(hostName) || typeof hostName !== "string" || hostName.trim().length > 50) {
     sendHttpError(res, 400, "hostName is required and must be 1-50 characters");
     return;
   }
@@ -175,7 +175,7 @@ async function joinParty(req: Request<{ code: string }>, res: Response): Promise
   const code = req.params.code.toUpperCase();
 
   // Validate name
-  if (!name || typeof name !== "string" || name.trim().length === 0 || name.trim().length > 50) {
+  if (isBlankString(name) || typeof name !== "string" || name.trim().length > 50) {
     sendHttpError(res, 400, "name is required and must be 1-50 characters");
     return;
   }

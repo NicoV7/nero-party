@@ -123,11 +123,12 @@ export default function Queue() {
                     strategy={verticalListSortingStrategy}
                   >
                     {queuedSongs.map((song, index) => (
-                      <SortableQueueItem
+                      <QueueItem
                         key={song.id}
                         song={song}
                         position={index + 1}
                         index={index}
+                        draggable
                         onPlay={handlePlaySong}
                       />
                     ))}
@@ -159,16 +160,22 @@ interface SongItem {
   addedByName: string;
 }
 
-function SortableQueueItem({
+function QueueItem({
   song,
+  badge,
   position,
+  played,
   index,
+  draggable,
   onPlay,
 }: {
   song: SongItem;
-  position: number;
-  index: number;
-  onPlay: (id: string) => void;
+  badge?: string;
+  position?: number;
+  played?: boolean;
+  index?: number;
+  draggable?: boolean;
+  onPlay?: (id: string) => void;
 }) {
   const {
     attributes,
@@ -177,102 +184,68 @@ function SortableQueueItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: song.id });
+  } = useSortable({ id: song.id, disabled: !draggable });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-    animationDelay: `${index * 50}ms`,
-  };
+  const style = draggable
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+        animationDelay: index != null ? `${index * 50}ms` : undefined,
+      }
+    : index != null
+    ? { animationDelay: `${index * 50}ms` }
+    : undefined;
 
   return (
     <div
-      ref={setNodeRef}
+      ref={draggable ? setNodeRef : undefined}
       style={style}
-      className={`group flex cursor-pointer items-center gap-3 px-4 py-3 opacity-0 transition-[background-color,box-shadow,opacity] duration-150 ease-[var(--ease-ui)] animate-stagger-in ${
-        isDragging
-          ? 'bg-nero-accent/10 shadow-lg opacity-90'
+      className={`group flex items-center gap-3 px-4 py-3 transition-[background-color,box-shadow,opacity] duration-150 ease-[var(--ease-ui)] ${
+        index != null || draggable ? 'animate-stagger-in opacity-0' : ''
+      } ${
+        draggable
+          ? isDragging
+            ? 'cursor-pointer bg-nero-accent/10 shadow-lg opacity-90'
+            : 'cursor-pointer hover:bg-nero-surface-hover'
+          : played
+          ? 'opacity-70'
           : 'hover:bg-nero-surface-hover'
       }`}
-      onClick={() => onPlay(song.id)}
+      onClick={draggable && onPlay ? () => onPlay(song.id) : undefined}
     >
-      {/* Drag handle — stopPropagation so click doesn't trigger play */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="flex w-6 shrink-0 touch-none items-center justify-center text-nero-dim transition-colors duration-150 ease-[var(--ease-ui)] hover:text-nero-text cursor-grab active:cursor-grabbing"
-        title="Drag to reorder"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 6h2v2H8zm6 0h2v2h-2zM8 10h2v2H8zm6 0h2v2h-2zM8 14h2v2H8zm6 0h2v2h-2zM8 18h2v2H8zm6 0h2v2h-2z" />
-        </svg>
-      </div>
-
-      {/* Position */}
-      <span className="text-xs font-medium text-nero-dim w-5 text-center shrink-0">
-        {position}
-      </span>
-
-      {/* 16:9 Thumbnail with play overlay on row hover */}
-      <div className="relative w-[120px] h-[68px] shrink-0 rounded-md overflow-hidden bg-nero-surface">
-        <img
-          src={song.thumbnailUrl}
-          alt={song.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-150 ease-[var(--ease-ui)] group-hover:opacity-100">
-          <svg className="ml-0.5 h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
+      {/* Drag handle — only shown in draggable mode */}
+      {draggable ? (
+        <div
+          {...attributes}
+          {...listeners}
+          className="flex w-6 shrink-0 touch-none items-center justify-center text-nero-dim transition-colors duration-150 ease-[var(--ease-ui)] hover:text-nero-text cursor-grab active:cursor-grabbing"
+          title="Drag to reorder"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 6h2v2H8zm6 0h2v2h-2zM8 10h2v2H8zm6 0h2v2h-2zM8 14h2v2H8zm6 0h2v2h-2zM8 18h2v2H8zm6 0h2v2h-2z" />
           </svg>
         </div>
-      </div>
+      ) : (
+        /* Left indicator column for non-draggable mode */
+        <div className="w-6 shrink-0 flex items-center justify-center">
+          {badge ? (
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-nero-accent animate-pulse" />
+          ) : position != null ? (
+            <span className="text-xs font-medium text-nero-dim">{position}</span>
+          ) : (
+            <span className="text-xs text-nero-dim">--</span>
+          )}
+        </div>
+      )}
 
-      {/* Song info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-nero-text truncate leading-snug">{song.title}</p>
-        <p className="text-xs text-nero-muted truncate">{song.artist}</p>
-        <p className="text-xs text-nero-dim truncate mt-0.5">
-          Added by {song.addedByName}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function QueueItem({
-  song,
-  badge,
-  position,
-  played,
-  index,
-}: {
-  song: SongItem;
-  badge?: string;
-  position?: number;
-  played?: boolean;
-  index?: number;
-}) {
-  return (
-    <div
-      style={index != null ? { animationDelay: `${index * 50}ms` } : undefined}
-      className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-        index != null ? 'animate-stagger-in opacity-0' : ''
-      } ${
-        played ? 'opacity-70' : 'hover:bg-nero-surface-hover'
-      }`}
-    >
-      {/* Left indicator column */}
-      <div className="w-6 shrink-0 flex items-center justify-center">
-        {badge ? (
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-nero-accent animate-pulse" />
-        ) : position != null ? (
-          <span className="text-xs font-medium text-nero-dim">{position}</span>
-        ) : (
-          <span className="text-xs text-nero-dim">--</span>
-        )}
-      </div>
+      {/* Position number — only shown in draggable mode (drag handle replaces indicator) */}
+      {draggable && position != null && (
+        <span className="text-xs font-medium text-nero-dim w-5 text-center shrink-0">
+          {position}
+        </span>
+      )}
 
       {/* 16:9 Thumbnail */}
       <div className="relative w-[120px] h-[68px] shrink-0 rounded-md overflow-hidden bg-nero-surface">
@@ -281,11 +254,18 @@ function QueueItem({
           alt={song.title}
           className="w-full h-full object-cover"
         />
-        {badge && (
+        {badge && !draggable && (
           <div className="absolute bottom-1 left-1">
             <span className="text-[9px] font-bold uppercase tracking-wider text-nero-bg bg-nero-accent px-1.5 py-0.5 rounded">
               {badge}
             </span>
+          </div>
+        )}
+        {draggable && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-150 ease-[var(--ease-ui)] group-hover:opacity-100">
+            <svg className="ml-0.5 h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
           </div>
         )}
       </div>

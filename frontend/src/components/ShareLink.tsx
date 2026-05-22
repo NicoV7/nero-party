@@ -1,33 +1,15 @@
-import { useState } from 'react';
 import { usePartyStore } from '../stores/partyStore';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 
 export default function ShareLink() {
   const party = usePartyStore((s) => s.party);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   if (!party) return null;
 
   const link = `${window.location.origin}/join/${party.code}`;
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = link;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  const handleCopy = () => copy(link);
 
   return (
     <div className="flex items-center gap-2 bg-nero-surface rounded-lg p-3">

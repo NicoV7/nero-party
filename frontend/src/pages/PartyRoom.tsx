@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { socket, connectSocket, disconnectSocket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
+import type {
+  LeaderboardSongData,
+  SongData,
+  ParticipantData,
+  ChatMessageData,
+  PartyEndedPayload,
+} from '../lib/types';
 import Player from '../components/Player';
 import Queue from '../components/Queue';
 import SongSearch from '../components/SongSearch';
@@ -65,24 +72,21 @@ export default function PartyRoom() {
       setConnected(true);
     });
 
-    socket.on('leaderboard-updated', (songs: any[]) => {
+    socket.on('leaderboard-updated', (songs: LeaderboardSongData[]) => {
       setLeaderboard(songs);
     });
 
-    socket.on('song-added', (data: any) => {
-      // Backend emits the song object directly
-      const song = data.song ?? data;
+    socket.on('song-added', (song: SongData) => {
       addSong(song);
     });
 
-    socket.on('now-playing', (payload: any) => {
+    socket.on('now-playing', (payload: { song: SongData | null; startedAt?: number }) => {
       setCurrentSong(payload.song ?? null);
       setPlaybackOffset(payload.startedAt ? Date.now() - payload.startedAt : 0);
     });
 
-    socket.on('song-ended', (data: any) => {
+    socket.on('song-ended', (song: SongData) => {
       // Show reaction toast for the song that just ended
-      const song = data.song ?? data;
       if (song?.id && song?.title && song?.artist) {
         setPendingReaction({
           songId: song.id,
@@ -96,17 +100,17 @@ export default function PartyRoom() {
       clearPendingReaction();
     });
 
-    socket.on('chat-message', (data: any) => {
+    socket.on('chat-message', (data: ChatMessageData) => {
       addChatMessage({
         id: data.id,
-        participantName: data.participant?.name ?? data.participantName ?? null,
+        participantName: data.participantName,
         content: data.content,
         type: data.type,
         createdAt: data.createdAt,
       });
     });
 
-    socket.on('reaction', (data: any) => {
+    socket.on('reaction', (data: { participantName: string; emoji: string }) => {
       addChatMessage({
         id: `reaction-${Date.now()}-${Math.random()}`,
         participantName: data.participantName,
@@ -116,26 +120,24 @@ export default function PartyRoom() {
       });
     });
 
-    socket.on('queue-updated', (songs: any[]) => {
+    socket.on('queue-updated', (songs: SongData[]) => {
       setSongs(songs);
     });
 
-    socket.on('participant-joined', (data: any) => {
-      const participant = data.participant ?? data;
-      addParticipant(participant);
+    socket.on('participant-joined', (data: { participant: ParticipantData }) => {
+      addParticipant(data.participant);
     });
 
-    socket.on('participant-left', (data: any) => {
-      const participantId = data.participantId ?? data.id;
-      removeParticipant(participantId);
+    socket.on('participant-left', (data: { participantId: string }) => {
+      removeParticipant(data.participantId);
     });
 
-    socket.on('party-ended', (payload: any) => {
+    socket.on('party-ended', (payload: PartyEndedPayload) => {
       setPartyEnded(payload.winner, payload.songResults ?? [], payload.stats);
       navigate(`/party/${code}/results`);
     });
 
-    socket.on('kicked', (payload: any) => {
+    socket.on('kicked', (payload: { message?: string }) => {
       setErrorToast(payload.message ?? 'You were removed from this room.');
       setTimeout(() => {
         reset();
@@ -143,7 +145,7 @@ export default function PartyRoom() {
       }, 1600);
     });
 
-    socket.on('error', (payload: any) => {
+    socket.on('error', (payload: { message?: string }) => {
       setErrorToast(payload.message ?? 'Something went wrong');
       setTimeout(() => setErrorToast(null), 5000);
     });

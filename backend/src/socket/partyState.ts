@@ -1,4 +1,5 @@
 import { SONG_STATUS_ORDER } from "../constants/party.js";
+import { PARTICIPANT_SELECT } from "../constants/prisma.js";
 import { prisma } from "../models/db.js";
 import { toSongData } from "../models/song.js";
 import { buildLeaderboard } from "../services/leaderboard.js";
@@ -18,18 +19,18 @@ export async function emitPartyState(
   const [participants, songs, chatMessages, leaderboard] = await Promise.all([
     prisma.participant.findMany({
       where: { partyId: party.id, isConnected: true },
-      select: { id: true, name: true, avatarColor: true, isConnected: true },
+      select: { ...PARTICIPANT_SELECT, isConnected: true },
     }),
     prisma.song.findMany({
       where: { partyId: party.id },
       include: {
-        addedBy: { select: { id: true, name: true, avatarColor: true } },
+        addedBy: { select: PARTICIPANT_SELECT },
       },
     }),
     prisma.chatMessage.findMany({
       where: { partyId: party.id },
       include: {
-        participant: { select: { id: true, name: true, avatarColor: true } },
+        participant: { select: PARTICIPANT_SELECT },
       },
       orderBy: { createdAt: "asc" },
     }),

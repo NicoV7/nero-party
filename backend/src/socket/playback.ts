@@ -1,5 +1,6 @@
 import type { Server } from "socket.io";
 import { PARTY_TIMER_MS_PER_MINUTE } from "../constants/party.js";
+import { PARTICIPANT_SELECT } from "../constants/prisma.js";
 import { prisma } from "../models/db.js";
 import { toSongData, type SongData } from "../models/song.js";
 import { buildFinalResults } from "../services/leaderboard.js";
@@ -22,7 +23,7 @@ export async function advanceToNextSong(io: Server, partyCode: string): Promise<
   const nextSongs = await prisma.song.findMany({
     where: { partyId: party.id, status: "queued" },
     include: {
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
+      addedBy: { select: PARTICIPANT_SELECT },
     },
     orderBy: { position: "asc" },
   });
@@ -106,7 +107,7 @@ export async function playPreviousSong(io: Server, partyCode: string, partyId: s
     where: { partyId, status: "played" },
     orderBy: { playedAt: "desc" },
     include: {
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
+      addedBy: { select: PARTICIPANT_SELECT },
     },
   });
 
@@ -137,7 +138,7 @@ export async function playQueuedSong(
   const song = await prisma.song.findFirst({
     where: { id: songId, partyId, status: "queued" },
     include: {
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
+      addedBy: { select: PARTICIPANT_SELECT },
     },
   });
 
@@ -157,7 +158,7 @@ export async function playQueuedSong(
   const allSongs = await prisma.song.findMany({
     where: { partyId },
     include: {
-      addedBy: { select: { id: true, name: true, avatarColor: true } },
+      addedBy: { select: PARTICIPANT_SELECT },
     },
   });
 

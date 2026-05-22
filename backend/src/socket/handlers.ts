@@ -1,11 +1,12 @@
 import { Server, Socket } from "socket.io";
-import { AVATAR_COLORS } from "../constants/party.js";
+import { AVATAR_COLORS, MAX_CHAT_MESSAGE_LENGTH, MAX_EMOJI_LENGTH, MAX_GUEST_NAME_SUFFIX } from "../constants/party.js";
+import { PARTICIPANT_SELECT } from "../constants/prisma.js";
 import { VALID_REACTIONS } from "../constants/reactions.js";
 import type { AddSongPayload, JoinRoomPayload } from "../dto/party.js";
 import { prisma } from "../models/db.js";
 import { buildLeaderboard } from "../services/leaderboard.js";
 import { addSongToQueue, reorderQueuedSongs } from "../services/songQueue.js";
-import { sanitize } from "../services/text.js";
+import { isBlankString, sanitize } from "../services/text.js";
 import { getHostSocketContext, getSocketContext } from "./context.js";
 import { emitSocketError, runSocketHandler } from "./errors.js";
 import { emitPartyState } from "./partyState.js";
@@ -175,7 +176,7 @@ async function joinRoom(io: Server, socket: Socket, { partyCode, clientToken }: 
     participant = await prisma.participant.create({
       data: {
         partyId: party.id,
-        name: isHost ? party.hostName : `Guest ${Math.floor(Math.random() * 1000)}`,
+        name: isHost ? party.hostName : `Guest ${Math.floor(Math.random() * MAX_GUEST_NAME_SUFFIX)}`,
         avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
         clientToken,
         isConnected: true,
@@ -272,7 +273,7 @@ async function sendChatMessage(
   { content }: { content: string }
 ): Promise<void> {
   const { party, socketParticipant } = await getSocketContext(socket);
-  if (!content || typeof content !== "string" || content.trim().length === 0 || content.length > 500) {
+  if (isBlankString(content) || typeof content !== "string" || content.length > MAX_CHAT_MESSAGE_LENGTH) {
     emitSocketError(socket, "Message must be 1-500 characters");
     return;
   }
@@ -285,7 +286,7 @@ async function sendChatMessage(
       type: "chat",
     },
     include: {
-      participant: { select: { id: true, name: true, avatarColor: true } },
+      participant: { select: PARTICIPANT_SELECT },
     },
   });
 
@@ -304,7 +305,7 @@ async function sendLiveReaction(
   { emoji }: { emoji: string }
 ): Promise<void> {
   const { socketParticipant } = await getSocketContext(socket);
-  if (!emoji || typeof emoji !== "string" || emoji.length > 10) {
+  if (!emoji || typeof emoji !== "string" || emoji.length > MAX_EMOJI_LENGTH) {
     emitSocketError(socket, "Invalid emoji");
     return;
   }

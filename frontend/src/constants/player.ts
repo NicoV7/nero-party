@@ -1,1 +1,6 @@
 export const SONG_REACTION_TOAST_DISMISS_MS = 10_000;
+
+export const PLAYBACK_SYNC_INTERVAL_MS = 2000;
+export const PLAYBACK_DRIFT_THRESHOLD_S = 1;
+export const AUTOPLAY_DELAY_MS = 500;
+export const HOST_SYNC_DELAY_MS = 500;

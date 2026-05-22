@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { socket } from '../lib/socket';
 import { usePartyStore } from '../stores/partyStore';
+import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
+import type { YTPlayer } from './Player';
 
 interface PlayerControlsProps {
-  playerRef: React.MutableRefObject<any>;
+  playerRef: React.RefObject<YTPlayer | null>;
   playerReady: React.MutableRefObject<boolean>;
   onFullscreen: () => void;
   captionsEnabled: boolean;
@@ -26,6 +28,8 @@ export default function PlayerControls({
   const isHost = usePartyStore((s) => s.isHost);
   const currentSong = usePartyStore((s) => s.currentSong);
 
+  const { copied, copy: copyToClipboard } = useCopyToClipboard();
+
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -37,7 +41,6 @@ export default function PlayerControls({
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [currentQuality, setCurrentQuality] = useState('auto');
   const [isSeeking, setIsSeeking] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const lastPrevClick = useRef(0);
   const songStartTime = useRef(Date.now());
@@ -167,9 +170,7 @@ export default function PlayerControls({
 
   const shareVideo = () => {
     const url = `https://youtu.be/${currentSong.youtubeVideoId}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    copyToClipboard(url);
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;

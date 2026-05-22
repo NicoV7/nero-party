@@ -1,5 +1,6 @@
 import type { Party } from "@prisma/client";
 import { ADD_MODE_HOST } from "../constants/party.js";
+import { PARTICIPANT_SELECT } from "../constants/prisma.js";
 import type { AddSongPayload } from "../dto/party.js";
 import { prisma } from "../models/db.js";
 import { toSongData, type SongData } from "../models/song.js";
@@ -80,7 +81,7 @@ export async function addSongToQueue(
         position: (maxPos._max.position ?? -1) + 1,
       },
       include: {
-        addedBy: { select: { id: true, name: true, avatarColor: true } },
+        addedBy: { select: PARTICIPANT_SELECT },
       },
     });
 

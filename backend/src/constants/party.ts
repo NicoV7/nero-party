@@ -36,3 +36,7 @@ export const SONG_STATUS_ORDER: Record<string, number> = {
   queued: 1,
   played: 2,
 };
+
+export const MAX_CHAT_MESSAGE_LENGTH = 500;
+export const MAX_EMOJI_LENGTH = 10;
+export const MAX_GUEST_NAME_SUFFIX = 1000;
